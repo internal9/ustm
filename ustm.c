@@ -9,7 +9,7 @@
 #include <errno.h>
 #include <stdbool.h>
 
-extern bool ustm_status = 0;
+bool ustm_status = 0;
 
 #define err(msg) (fprintf(stderr, msg "\n"), (ustm_status = 1))
 #define abort(msg) (fprintf(stderr, msg "\n"), exit(1))
@@ -19,11 +19,10 @@ typedef double ustm_num;
 
 #define TAB_WIDTH_GUESS 8       // Assumption, despite ambiguity 
 
-static long src_line = 1;
-static long src_column = 0;
-static long src_i = 0;
-static long src_len;
-static char *src_txt;
+typedef int file_pos;
+
+static file_pos src_line = 1;
+static file_pos src_column = 0;
 
 static const char* keywords[] = {
         "null", "true", "false", // keywords that are *literals*
@@ -36,21 +35,6 @@ static const char* keywords[] = {
 };
 
 static struct HashMap keywords_hashmap;
-
-// NOTE: Might have to change later if wanting variadic args
-#define WARN(msg) printf("WARNING (L%ld C%ld): " msg "\n", src_line, src_column)
-#define WARN_FMT(msg, ...) printf("WARNING (L%ld C%ld): " msg "\n", src_line, src_column, __VA_ARGS__)
-#define LEX_ERR(msg) (fprintf(stderr, "ERROR (L%ld C%ld): " msg "\n", src_line, src_column), exit(EXIT_FAILURE))
-#define LEX_ERR_FMT(msg, ...) (fprintf(stderr, "ERROR (L%ld C%ld): " msg "\n", src_line, src_column, __VA_ARGS__), exit(EXIT_FAILURE))
-
-// NOTE: May remove macros and use a variable to just set both of these once per token lexed
-#define INCPOS() (src_i++, src_column++)
-#define DECPOS() (src_i--, src_column--)
-// left operand is guaranteed evaluation *1st*
-#define SET_POS(pos) (src_column += (pos - src_i), src_i = pos)
-#define GET_C() src_txt[src_i]
-#define NEXT_C() src_txt[src_i + 1]
-#define PREV_C() src_txt[src_i - 1]
 
 static inline void handle_tab_char(void)
 {
@@ -688,6 +672,7 @@ main(int argc, const char* argv[argc])
 	const char* out_name = argv[2];
   FILE *src_fp = open_src(src_name);
 	FILE *out_fp = open_out(out_name);
+	compile(src_fp, out_fp);
 	
 	return 0;
 }
