@@ -645,6 +645,15 @@ enum TkType lex_next(struct Tk *p_tk)
         return p_tk->type;
 }
 
+static void
+next_tk(void)
+{
+  char c = getc(src_fp);
+  
+}
+
+
+
 static inline void
 check_suffix(const char* str, const char* suffix)
 {
@@ -666,7 +675,7 @@ open_out(const char *name)
 {
 	if (!check_suffix(name)) abort("Outfile name requires suffix '.ustmbyc' with preceding text");
 	FILE *out_fp;
-	if (!(out_fp = fopen(name, "r"))) abort("Failed to open outfile");
+	if (!(out_fp = fopen(name, "w"))) abort("Failed to open outfile");
 	return out_fp;
 }
 
