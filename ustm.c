@@ -645,7 +645,7 @@ main(int argc, const char* argv[argc])
 	const char* out_name = argv[2];
   FILE *src_fp = open_src(src_name);
 	FILE *out_fp = open_out(out_name);
-	codegen_run(src_fp, out_fp);
+	vm_run(src_fp, out_fp);
 	fclose(src_fp);
 	fclose(out_fp);
 	return ustm_status;
