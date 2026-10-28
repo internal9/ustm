@@ -9,6 +9,14 @@
 #include <errno.h>
 #include <stdbool.h>
 
+extern bool ustm_status = 0;
+
+#define err(msg) (fprintf(stderr, msg "\n"), (ustm_status = 1))
+#define abort(msg) (fprintf(stderr, msg "\n"), exit(1))
+
+typedef int64_t ustm_int;
+typedef double ustm_num;
+
 #define TAB_WIDTH_GUESS 8       // Assumption, despite ambiguity 
 
 static long src_line = 1;
@@ -637,8 +645,8 @@ enum TkType lex_next(struct Tk *p_tk)
         return p_tk->type;
 }
 
-void
-a()
+static FILE*
+open_src()
 {
   fopen()
 }
@@ -647,8 +655,7 @@ a()
 int
 main(int argc, const char *argv[argc])
 {
-  if (argc != 2)
-
+  if (argc != 2) abort("Usage: ./ustm src");
   
-  return 0;
+  return ustm_status;
 }
