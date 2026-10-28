@@ -4,6 +4,7 @@ extern int ustm_status;  // FROM: main.c
 
 static FILE* src_fp;
 
+// NOTE: char type just uses native C type, no seperate typedef
 typedef int64_t ustm_int;
 typedef double ustm_num;
 
@@ -12,7 +13,12 @@ typedef int file_pos;
 static file_pos line = 1;
 static file_pos column = 0;
 
-#define TAB_WIDTH_GUESS 8       // Assumption, despite ambiguity 
+// NOTE: Assumption, despite ambiguity
+#define TAB_WIDTH_GUESS 8
+
+static char tk_val_txt[512];
+static ustm_int tk_val_int;	// NOTE: Holds character values too
+static ustm_num tk_val_num;
 
 
 static const char* reserved[] = {
