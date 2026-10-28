@@ -9,32 +9,12 @@
 #include <errno.h>
 #include <stdbool.h>
 
-bool ustm_status = 0;
+bool ustm_status = 0;	// USED BY: lex.c, codegen.c
 
 #define err(msg) (fprintf(stderr, msg "\n"), (ustm_status = 1))
 #define abort(msg) (fprintf(stderr, msg "\n"), exit(1))
 
-typedef int64_t ustm_int;
-typedef double ustm_num;
 
-#define TAB_WIDTH_GUESS 8       // Assumption, despite ambiguity 
-
-typedef int file_pos;
-
-static file_pos src_line = 1;
-static file_pos src_column = 0;
-
-static const char* keywords[] = {
-        "null", "true", "false", // keywords that are *literals*
-        "bool", "char", "int", "num",
-        "string", "array", "struct",
-        "if", "elif", "else",
-        "while", "for",
-        "switch", "jmp",
-        "fn", "ref"
-};
-
-static struct HashMap keywords_hashmap;
 
 static inline void handle_tab_char(void)
 {
@@ -628,15 +608,6 @@ enum TkType lex_next(struct Tk *p_tk)
 
         return p_tk->type;
 }
-
-static void
-next_tk(void)
-{
-  char c = getc(src_fp);
-  
-}
-
-
 
 static inline void
 check_suffix(const char* str, const char* suffix)
