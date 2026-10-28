@@ -9,7 +9,8 @@
 #include <errno.h>
 #include <stdbool.h>
 
-bool ustm_status = 0;	// USED BY: lex.c, codegen.c
+											// NOTE: 'abort()' bypasses and goes straight to 'exit(1)'
+bool ustm_status = 0;	// USED BY: ustm.c, lex.c, codegen.c
 
 #define err(msg) (fprintf(stderr, msg "\n"), (ustm_status = 1))
 #define abort(msg) (fprintf(stderr, msg "\n"), exit(1))
@@ -192,6 +193,7 @@ static void lex_keyword_or_identifier(struct Tk *p_tk)
                 INCPOS();
                 c = GET_C();
         }
+				// TODO: check this, might fail since src_column += 8 when tab
         size_t len = (size_t) (src_column - p_tk->column);
         int keyword_type_enum = hashmap_get_int(&keywords_hashmap,
                                                 txt_start, len);
@@ -643,7 +645,7 @@ main(int argc, const char* argv[argc])
 	const char* out_name = argv[2];
   FILE *src_fp = open_src(src_name);
 	FILE *out_fp = open_out(out_name);
-	compile(src_fp, out_fp);
+	codegen_run(src_fp, out_fp);
 	
-	return 0;
+	return ustm_status;
 }
