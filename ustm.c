@@ -648,16 +648,20 @@ enum TkType lex_next(struct Tk *p_tk)
 static FILE*
 open_src(const char *name)
 {
+	const char* dot = strrchr(name, '.');
+	if (!dot || !strcmp(dot, 
 	FILE *src_fp;
-	if (!(src_fp = fopen(name, "r")))
+	if (!(src_fp = fopen(name, "r"))) abort("Unreadable/non-existent source");
 }
 
 // USAGE: ./ustm src => bytecode outfile: '{src}.ustmbyc'
 int
-main(int argc, const char *argv[argc])
+main(int argc, const char* argv[argc])
 {
 	if (argc != 2) abort("Usage: ./ustm src");
-  FILE *src_fp;
-	if (!(src_fp = fopen(name, "r"))) abort("Unreadable/non-existent source file");
-	return ustm_status;
+	const char* src_name = argv[1];
+  FILE *src_fp = open_src(src_name);
+	FILE *out_fp = open_out(src_name);
+	
+	return 0;
 }
