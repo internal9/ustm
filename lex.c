@@ -16,8 +16,14 @@ static file_pos column = 0;
 // NOTE: Assumption, despite ambiguity
 #define TAB_WIDTH_GUESS 8
 
-static char tk_val_txt[512];
-static ustm_int tk_val_int;	// NOTE: Holds character values too
+
+#define TK_IDENT_START = index of last reserved
+
+static char syms[MAX_SYMS];        // store reserved &
+static something ident_data[MAX_SYMS - TK_IDENT_START];
+
+static char tk_val_txt[512];  // TBD: copy char (& process escape seqs) per fgetc?
+static ustm_int tk_val_int;  // NOTE: Holds character values too
 static ustm_num tk_val_num;
 
 
