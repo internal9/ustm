@@ -52,8 +52,10 @@ lex_next(void)
   
 }
 
-static void
-lex_peek(void)
+static int
+lex_expect(some_arg)
 {
 
 }
+
+// no peek func, each codegen func will end off with the current tk being next after last one needed
