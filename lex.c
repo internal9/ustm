@@ -49,19 +49,21 @@ memset(op_info, -1, UCHAR_MAX + 1);
 #define IS_2C	1
 #define IS_3C	2
 
-#define INDEX					
-#define MAX_C_BRANCH (0b0000000)
+// 0b00001111
+#define INDEX		 (0x0F)			
+// 0b11110000
+#define MAX_C_BRANCH (0xF0)
 
-op_info['='] = (IS_2C << 4) | INDEX;
-op_info['+'] = 1;
+op_info['='] = (IS_2C << 4) | 0x00;
+op_info['+'] = (IS_2C << 4) | 0x01;
 op_info['-'] = 2;
 op_info['*'] = 3;
 op_info['/'] = 4;
 op_info['^'] = 5;
-op_info['>'] = 6;
+op_info['>'] = (IS_3C << 4) | 0x06;
 op_info['<'] = 7;
 op_info['&'] = 8;
-op_info['%'] = 9 | IS_2C;
+op_info['%'] = (IS_2C << 4) | 0x09;
 
 #define op_i(c) (op_info[c] & INDEX)
 #define op_Nc(c) (op_info[c] & (MAX_C_BRANCH << 4))
