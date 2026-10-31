@@ -41,6 +41,28 @@ enum {
 	TK_SUB,
 };
 
+// OR
+
+int op_info[UCHAR_MAX + 1] ;
+memset(op_info, -1, UCHAR_MAX + 1);
+
+op_info['='] = 0 & IS_2C;
+op_info['+'] = 1;
+op_info['-'] = 2;
+op_info['*'] = 3;
+op_info['/'] = 4;
+op_info['^'] = 5;
+op_info['>'] = 6;
+op_info['<'] = 7;
+op_info['%'] = 8 & IS_2C;
+
+int tk_2c[] = {
+	[op_info['='] & INDEX] = {[op_info['='] & INDEX] = TK_EQ},	// 'TK_EQ' is '==' *NOT* '=', cuz assignment tk (no seperate enum) is '='
+	[op_info['+'] & INDEX] = {[op_info['+'] & INDEX] = TK_INC, [op_info['='] & INDEX = TK_ADD_AS},
+	[op_info['>'] & INDEX] = {[op_info['='] & INDEX] = TK_GEQ, [op_info['>'] & INDEX] = TK_SHR},
+	[op_info['%'] & INDEX] = {[op_info['='] & INDEX] = TK_MOD_AS}
+}
+
 
 static const char* reserved[] = {
         "null", "true", "false", // keywords that are *literals*
