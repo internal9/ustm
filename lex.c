@@ -64,6 +64,7 @@ op_info['>'] = (IS_3C << 4) | 0x06;
 op_info['<'] = 7;
 op_info['&'] = 8;
 op_info['%'] = (IS_2C << 4) | 0x09;
+op_info['a'] = last / max value of op,	// if (tb[c] > C_ALPHANUM)
 
 #define op_i(c) (op_info[c] & INDEX)
 #define op_Nc(c) (op_info[c] & (MAX_C_BRANCH << 4))
