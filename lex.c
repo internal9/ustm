@@ -46,7 +46,13 @@ enum {
 int op_info[UCHAR_MAX + 1] ;
 memset(op_info, -1, UCHAR_MAX + 1);
 
-op_info['='] = 0 & IS_2C;
+#define IS_2C	1
+#define IS_3C	2
+
+#define INDEX					
+#define MAX_C_BRANCH (0b0000000)
+
+op_info['='] = (IS_2C << 4) | INDEX;
 op_info['+'] = 1;
 op_info['-'] = 2;
 op_info['*'] = 3;
@@ -54,15 +60,32 @@ op_info['/'] = 4;
 op_info['^'] = 5;
 op_info['>'] = 6;
 op_info['<'] = 7;
-op_info['%'] = 8 & IS_2C;
+op_info['&'] = 8;
+op_info['%'] = 9 | IS_2C;
+
+#define op_i(c) (op_info[c] & INDEX)
+#define op_Nc(c) (op_info[c] & (MAX_C_BRANCH << 4))
 
 int tk_2c[] = {
-	[op_info['='] & INDEX] = {[op_info['='] & INDEX] = TK_EQ},	// 'TK_EQ' is '==' *NOT* '=', cuz assignment tk (no seperate enum) is '='
-	[op_info['+'] & INDEX] = {[op_info['+'] & INDEX] = TK_INC, [op_info['='] & INDEX = TK_ADD_AS},
-	[op_info['>'] & INDEX] = {[op_info['='] & INDEX] = TK_GEQ, [op_info['>'] & INDEX] = TK_SHR},
-	[op_info['%'] & INDEX] = {[op_info['='] & INDEX] = TK_MOD_AS}
+	[op_i('=')] = {[op_i('=')] = TK_EQ},	// 'TK_EQ' is '==' *NOT* '=', cuz assignment tk (no seperate enum) is '='
+	[op_i('+')] = {[op_i('+')] = TK_INC, [op_i('=')] = TK_ADD_AS},
+	[op_i('>')] = {[op_i('=')] = TK_GEQ, [op_i('>')] = TK_SHR},
+
+	[op_i('%')] = {[op_i('=')] = TK_MOD_AS}
 }
 
+// TODO: can bitmasking somehow end up as '-1'
+if (op_info[c] != -1) {
+	i = op_i(c);
+	if (op_Nc(c) == IS_2C) {
+		if (look = tk_2c[i][op_info[nextc() & INDEX] != 0) {
+			return look;
+		}
+	}
+	else if (op_info[i] & C_BRANCHES == IS_3C) {
+		
+	}
+}
 
 static const char* reserved[] = {
         "null", "true", "false", // keywords that are *literals*
