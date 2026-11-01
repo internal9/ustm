@@ -245,7 +245,8 @@ static void lex_keyword_or_identifier(struct Tk *p_tk)
 }
 
 // TBD: current c variable
-#define nextc() (getc(src_fp)
+#define nextc() (getc(src_fp))
+#define lastc() (ungetc(src_fp))
 
 static inline char
 esc_seq(c2)
@@ -309,42 +310,13 @@ static bool handle_whitespace(void)
         return true;
 }
 
-static bool handle_line_comment(void)
+static void
+skip_comment(bool is_multi_line)
 {
-        int c = nextc();
-        if (c != '/' || NEXT_C() != '/') return false;
-        INCPOS();
-        for (c = GET_C(); c != '\n' && c != '\0'; c = GET_C())
-                if (c == '\t')
-                        handle_tab_char();
-                else
-                        INCPOS();
-        return true;
-}
-
-static bool handle_multiline_comment(void)
-{
-        char c = GET_C();
-        if (c != '/' || NEXT_C() != '*') return false;
-        long comment_src_line = src_line;
-        long comment_src_column = src_column;
-        INCPOS();
-        for (c = GET_C(); c != '*' || NEXT_C() != '/'; c = GET_C())
-                if (c == '\0')
-                        LEX_ERR_FMT("Unclosed multiline comment "
-                                    "starting at (L%ld C%ld)",
-                                    comment_src_line,comment_src_column);
-                else if (c == '\t')
-                        handle_tab_char();
-                else if (c == '\n')
-                        handle_newline_char();
-                else
-                        INCPOS();
-
-        // char after ending '*/'
-        INCPOS();
-        INCPOS();
-        return true;
+	if (is_multi_line)
+		do if ((c = nextc()) == EOF) {err("Unterminated block comment"); return;}
+		while (c != '*' && (c = nextc() != '/', c = lastc());
+	else do c = nextc(); while (c != '\n' && c != EOF);
 }
 
 // TBD stuff
@@ -393,7 +365,10 @@ lex_next(void)
 {
   int c = nextc();
 	switch (c) {
-	case '/': 
+	case '/':
+		c = nextc()
+		if {(c == '/' || c == '*') skip_comment(c == '*'); break;}
+		else c = lastc();
 	case '!': case '=': case '*': case '%':
 		return ( (nextc() == '=') ? (c_cases2[c]) : (c) );
 	case '+': case '-': case '&': case '|':
@@ -409,18 +384,10 @@ lex_next(void)
 	case '\'': lex_char(false); return TK_LIT_CHAR;
 	case '"':  lex_str();				return TK_LIT_STR;
 	case '0':
-					c = GET_C();
-					if (c == 'x') {
-									INCPOS();
-									lex_hex_int(p_tk);
-					} else if (c == 'b') {
-									INCPOS();
-									lex_bin_int(p_tk);
-					} else {
-									DECPOS();
-									lex_dec_int_or_num(p_tk);
-					}
-					break;
+					c = nextc();
+					if (c == 'x') 		 lex_hex_int(p_tk);	return TK_LIT_INT;
+					else if (c == 'b') lex_bin_int(p_tk);	return TK_LIT_INT;
+					else return lex_dec_int_or_num(p_tk);
 	case '.':
 					// no incpos, 'lex_num' needs to read '.' for fraction
 					if (isdigit(NEXT_C()))
