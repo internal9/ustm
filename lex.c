@@ -417,11 +417,16 @@ lex_init(FILE* src_fp)
 
 int c_cases2[] = {
 	['!'] = TK_NOT_AS,
+	['^'] = TK_XOR_AS,
+	['='] = TK_EQ,
+	['/'] = TK_DEV_AS,
+	['*'] = TK_MUL_AS,
+	['%'] = TK_MOD_AS
 };
 
 int c_cases3[] = {
 	['+'] = (TK_INC << 4) | TK_ADD_AS,
-	['-'] = (TK_SUB << 4) | TK_SUB_AS,
+	['-'] = (TK_DEC << 4) | TK_SUB_AS,
 	['&'] = (TK_L_AND << 4) | TK_AND_AS,
 	['|'] = (TK_L_OR << 4) | TK_OR_AS,
 };
@@ -431,29 +436,22 @@ int c2_cases3[] = {
 	['>'] = (TK_SH_R << 8) | (TK_SH_R_AS << 4) | (TK_REQ),
 };
 
+#define C_CASES2(c)				 				 ( (nc() == '=') ? (c_cases2[c]) : c )
+#define C_CASES3(c, case2, case3)	 ( (nc() == '=') ? (c_cases3[c]) : (cc() == c  )
+#define C2_CASES3(c, case2, case3) (
+
 // NOTES: line & column are not recorded only at error
 static int
 lex_next(void)
 {
   int c = getc(src_fp);
 	switch (c) {
-	case '!': case2 = TK_NOT_AS; goto c2;
-	case '^': case2 = TK_XOR_AS; goto c2;
-	case '=':	case2 = TK_EQ; 		 goto c2;			//  return read_next('=', TK_EQ);
-	case '/': case2 = TK_DIV_AS; goto c2;
-	case '*': case2 = TK_MUL_AS; goto c2;
-	case '%': case2 = TK_MOD_AS; goto c2;
-	c2:
-		return nc() == '=' ? case2 : case_default;
-	case '+': case2 = TK_INC; case3 = TK_ADD_AS; goto c3;
-	case '-': case2 = TK_DEC; case3 = TK_SUB_AS; goto c3;
-	case '&': case2 = TK_L_AND; case3 = TK_AND_AS; goto c3;
-	case '|': case2 = TK_L_OR; case3 = TK_OR_AS; goto c3;
-	c3:
-		return ((nc() == c) ? case2 : (nc() == '=' ? case3 : c))
-	case '<': case2 = TK_SH_L; case3 = TK_SH_L_AS; case4 = TK_LEQ;
+	case '!': case '^': case '=': case '/': case '*': case '%':
+		return nc() == '=' ? c_cases2[c] : c;
+	case '+': case '-': case '&': case '|':
+		return ((nc() == c) ? (c_cases3[c] & CASE2) : (nc() == '=' ? (c_cases3[c] & CASE1) : c))
+	case '<': case '>':
 		
-	case '>':
 		
 	case ',':
 					INCPOS();
