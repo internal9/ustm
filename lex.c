@@ -39,8 +39,14 @@ static int txt_n = 0;
  * - unsure if even beyond 255, special things are reserved
  */
 enum {
-	TK_ADD = (UCHAR_MAX + 1),
-	TK_SUB,
+	TK_INC = (UCHAR_MAX + 1)
+	TK_DEC,
+	TK_ADD_AS,
+	TK_SUB_AS,
+	TK_MUL_AS,
+	TK_DIV_AS,
+	TK_POW_AS,
+
 };
 
 
@@ -238,34 +244,6 @@ static void lex_keyword_or_identifier(struct Tk *p_tk)
         }
 }
 
-
-// Only *ascii* chars will be supported, may be changed to *utf-8*, and allow wide chars
-static int lex_lit_struct Tk *p_tk)
-{
-	switch (getc(src_fp)) {
-	case '\'': err("Character literal cannot be empty"); return;
-	case '\\': 
-	}
-	
-	if (c == '\\') {
-					c = GET_C();
-					int esc_char = esc_seq_from_c);
-					if (esc_char == -1)
-									LEX_ERR("Invalid escape sequence");
-					p_tk->value.c = (char) esc_char;
-									
-	}
-	else if (c == '\t')
-					handle_tab_);
-	else if (!isalnum(c) && !isspace(c) && !ispunct(c) && c != '_')
-					LEX_ERR("Invalid character literal.");
-	INCPOS();
-	c = GET_C();
-	if (c != '\'')
-					LEX_ERR("Expected ''' to end character literal.");
-	INCPOS();
-}
-
 // TBD: current c variable
 #define nextc() (getc(src_fp)
 
@@ -293,7 +271,7 @@ lex_char(bool is_tk_lit_str)
 		if (is_tk_lit_str) break;
 		err("Char cannot be empty"); return;
 	case '\\': c = esc_seq(nextc()); 	break;
-	case '_': case '\t': 										break;
+	case '_': case '\t': 							break;
 	default:
 		if (!isalnum(c) && !isspace(c) && !ispunct(c) && c != '_') err("Char must be ASCII idk");
 	}
@@ -331,7 +309,7 @@ static bool handle_whitespace(void)
 
 static bool handle_line_comment(void)
 {
-        char c = GET_C();
+        int c = nextc();
         if (c != '/' || NEXT_C() != '/') return false;
         INCPOS();
         for (c = GET_C(); c != '\n' && c != '\0'; c = GET_C())
@@ -367,13 +345,6 @@ static bool handle_multiline_comment(void)
         return true;
 }
 
-// probably the worst thing written on here
-static inline void handle_non_lexable(void)
-{
-        while (handle_whitespace() || handle_line_comment() ||
-               handle_multiline_comment());
-}
-
 // TBD stuff
 static inline void init_keywords_map(void)
 {
@@ -395,7 +366,6 @@ lex_init(FILE* src_fp)
 
 static const int c_cases2[] = {
 	['!'] = TK_NOT_AS,
-	['^'] = TK_XOR_AS,
 	['='] = TK_EQ,
 	['/'] = TK_DEV_AS,
 	['*'] = TK_MUL_AS,
@@ -409,7 +379,8 @@ static const int c_cases3[] = {
 	['|'] = (TK_L_OR << 4) | TK_OR_AS,
 };
 
-static const int c2_cases3[] = {
+static const int c2_cases4[] = {
+	['^'] = (TK_XOR << 8) | (TK_XOR_AS << 4) | (TK_POW_AS),
 	['<'] = (TK_SH_L << 8) | (TK_SH_L_AS << 4) | (TK_LEQ),
 	['>'] = (TK_SH_R << 8) | (TK_SH_R_AS << 4) | (TK_REQ),
 };
@@ -418,22 +389,23 @@ static const int c2_cases3[] = {
 static int
 lex_next(void)
 {
-  int c = getc(src_fp);
+  int c = nextc();
 	switch (c) {
-	case '!': case '^': case '=': case '/': case '*': case '%':
-		return ( (nc() == '=') ? (c_cases2[c]) : (c) );
+	case '/': 
+	case '!': case '=': case '*': case '%':
+		return ( (nextc() == '=') ? (c_cases2[c]) : (c) );
 	case '+': case '-': case '&': case '|':
-		if (nc() == c) return c_cases3[c] & 0xF0;
-		return (cc() == '=') ? (c_cases3[c] & 0x0F) : c;
-	case '<': case '>':
-		if (nc() == '=') return c2_cases3[c] & 0x00F;
-		if (cc() == c) 	 return (nc() == '=') ? (c2_cases3[c] & 0x0F0) : (c2_cases3[c] & 0xF00);
+		if (nextc() == c) return c_cases3[c] & 0xF0;
+		return (nextc() == '=') ? (c_cases4[c] & 0x0F) : (c);
+	case '<': case '>': case '^':
+		if (nextc() == '=') return c2_cases4[c] & 0x00F;
+		if (currentc() == c) 	 return (nextc() == '=') ? (c2_cases4[c] & 0x0F0) : (c2_cases4[c] & 0xF00);
 		return c;
 	case ',': case '[': case ']': case '{': case '}':
 	case '(': case ')': case '?': case ':': case ';':
 		return c;
-	case '\'': return lex_char(p_tk);
-	case '"':  lex_str(p_tk); return TK_STR;
+	case '\'': lex_char(false); return TK_LIT_CHAR;
+	case '"':  lex_str();				return TK_LIT_STR;
 	case '0':
 					c = GET_C();
 					if (c == 'x') {
