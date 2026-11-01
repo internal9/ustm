@@ -212,36 +212,11 @@ static void lex_op_other_or_assign(struct Tk *p_tk, enum TkTypeGroup TK_OP_type_
         }
 }
 
-// temp to remove warnings
-// will finish
-// test this later
-static void lex_keyword_or_identifier(struct Tk *p_tk)
+static void
+lex_ident(void)
 {
-        char *txt_start = src_txt + src_i;
-        char c = GET_C();
-        while (isalpha(c) || isdigit(c) || c == '_') {
-                INCPOS();
-                c = GET_C();
-        }
-				// TODO: check this, might fail since src_column += 8 when tab
-        size_t len = (size_t) (src_column - p_tk->column);
-        int keyword_type_enum = hashmap_get_int(&keywords_hashmap,
-                                                txt_start, len);
-        // -1 means key *not found*
-        if (keyword_type_enum == -1) {
-                p_tk->type_group = G_MISC;
-                p_tk->type = TK_IDENT;
-                p_tk->value.txt = malloc(len + 1);
-                if (p_tk->value.txt == NULL)
-                        LEX_ERR("Failed memory alloc for identifier");
-                p_tk->value.txt[len] = '\0';
-                memcpy(p_tk->value.txt, txt_start, len);
-        }
-        else {
-                // p_tk->type_group = G_KEYWORD;
-                p_tk->type = (enum TkType) keyword_type_enum;
-                // make this better
-        }
+	for (int c; isalnum(c = nextc());)
+	// TBD: copy chars into txt hufs
 }
 
 // TBD: current c variable
@@ -296,7 +271,7 @@ lex_str(void)
 }
 
 // whitespace characters are non-printable characters that define text layouts
-static void
+static inline void
 skip_whitespace(void)
 {
 	while(isspace(int c = nextc()));
@@ -310,7 +285,7 @@ skip_comment(bool is_multi_line)
 	if (is_multi_line)
 		while (1) {
 			if ((c = nextc()) == EOF) {err("Unterminated block comment"); return;
- 			else if (c == '*') {
+ 		else if (c == '*') {
 				if ((c = nextc()) == EOF)	{err("Unterminated block comment"); return;}
 				if (c == '/') break;
 			}
@@ -407,7 +382,7 @@ lex_next(void)
 						if (isdigit(nextc()))
 										lex_num();
 						else return '.';
-		case '_': return lex_keyword_or_identifier(p_tk);
+		case '_': return lex_ident(p_tk);
 		default:
 						if (isdigit(c)) 		 			return lex_dec_int_or_num(p_tk);
 						else if (isalpha(c))		  return lex_keyword_or_identifier(p_tk);
