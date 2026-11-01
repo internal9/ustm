@@ -262,7 +262,7 @@ esc_seq(c2)
 }
 
 // used to lex a lit char & used by lit str cuz lazy
-static void
+static bool
 lex_char(bool is_tk_lit_str)
 {
 	int c = nextc();
@@ -270,7 +270,8 @@ lex_char(bool is_tk_lit_str)
 	case '\'':
 		if (is_tk_lit_str) break;
 		err("Char cannot be empty"); return;
-	case '\\': c = esc_seq(nextc()); 	break;
+	case '\\': c = esc_seq(nextc());
+	case '"': if (is_tk_lit_str) return false;	// NOTE: true: non-terminated
 	case '_': case '\t': 							break;
 	default:
 		if (!isalnum(c) && !isspace(c) && !ispunct(c) && c != '_') err("Char must be ASCII idk");
@@ -285,11 +286,12 @@ lex_char(bool is_tk_lit_str)
 static void
 lex_str(void)
 {
-	for (int i = 0; i < MAX_TXT_N; i++) {
-		lex_char(true);
+	for (;;) {
+		if (txt_n > MAX_TXT_N) err("String size exceeded limit"); return;
+		if (lex_char(true)) return;
 		if (ustm_err) return;
 	}
-	if (nextc() != '\"') err("Expected closing '\"'");
+	err("Unterminated string");
 }
 
 // whitespace characters are non-printable characters that define text layouts
