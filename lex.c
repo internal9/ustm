@@ -296,27 +296,26 @@ lex_str(void)
 }
 
 // whitespace characters are non-printable characters that define text layouts
-static bool handle_whitespace(void)
+static void
+skip_whitespace(void)
 {
-        char c = GET_C();
-        if (!isspace(c)) return false;
-        while (isspace(c = GET_C()))
-                if (c == '\t')
-                        handle_tab_);
-                else if (c == '\n')
-                        handle_newline_);
-                else
-                        INCPOS();
-        return true;
+	while(isspace(int c = nextc()));
+	lastc();
 }
 
 static void
 skip_comment(bool is_multi_line)
 {
+	int c;
 	if (is_multi_line)
-		do if ((c = nextc()) == EOF) {err("Unterminated block comment"); return;}
-		while (c != '*' && (c = nextc() != '/', c = lastc());
-	else do c = nextc(); while (c != '\n' && c != EOF);
+		while (1) {
+			if ((c = nextc()) == EOF) {err("Unterminated block comment"); return;
+ 			else if (c == '*') {
+				if ((c = nextc()) == EOF)	{err("Unterminated block comment"); return;}
+				if (c == '/') break;
+			}
+		}
+	else do if ((c = nextc()) == EOF) {lastc(); break;}; while (c != '\n');
 }
 
 // TBD stuff
@@ -372,10 +371,13 @@ lex_next(void)
 {
   int c = nextc();
 	switch (c) {
-	case EOF: if (ferror(src_fp)) err("Lexing source read error") return EOF;
+	case ' ': case '\n': case '\r': case '\t': case '\v': case '\f':
+		skip_whitespace(); c = nextc();
+	case EOF:
+		if (ferror(src_fp)) err("Lexing source read error") return EOF;
 	case '/':
 		c = nextc()
-		if {(c == '/' || c == '*') skip_comment(c == '*'); break;}
+		if (c == '/' || c == '*') skip_comment(c == '*');
 		else c = lastc();
 	case '!': case '=': case '*': case '%':
 		return ( (nextc() == '=') ? (c_cases2[c]) : (c) );
@@ -413,10 +415,4 @@ lex_next(void)
 
 }
 
-static int
-lex_expect(some_arg)
-{
-
-}
-
-// no peek func, each codegen func will end off with the current tk being next after last one needed
+// NOTE: no peek func, each codegen func will end off with the current tk being next after last one needed
