@@ -146,7 +146,8 @@ static void lex_hex_int(struct Tk *p_tk)
 
   CHECK for *suffix* 'f', otherwise error, assuming an attempt at lexing a massive 'int'
 */
-static void lex_num(struct Tk *p_tk)
+static void
+lex_num(void)
 {
         p_tk->type_group = G_LITERAL;
         p_tk->type = TK_LIT_NUM;
@@ -170,7 +171,8 @@ static void lex_num(struct Tk *p_tk)
 }
 
 // probably need a more robust integer lexer
-static void lex_dec_int_or_num(struct Tk *p_tk)
+static int
+lex_dec_int_or_num(void)
 {
         p_tk->type_group = G_LITERAL;
         p_tk->type = TK_LIT_INT;
@@ -199,23 +201,25 @@ try_lex_num:
         lex_num(p_tk);
 }
 
-static void lex_op_other_or_assign(struct Tk *p_tk, enum TkTypeGroup TK_OP_type_group,
-                        enum TkType TK_OP_type, enum TkType assigner_type)
+#define MAX_LOAD_FACTOR 80
+#define HASH_BASIS 0xcbf29ce484222325
+#define HASH_PRIME 0x100000001b3
+
+uint64_t fnv1a_hash(const char *str, size_t str_len)
 {
-        if (GET_C() == '=') {
-                p_tk->type_group = G_OP_ASSIGN;
-                p_tk->type = assigner_type;
-                INCPOS();
-        } else {
-                p_tk->type_group = TK_OP_type_group;
-                p_tk->type = TK_OP_type;
-        }
+	
+
+	for (size_t i = 0; i < str_len; i++)
+		hash ^= (uint64_t) str[i], hash *= fnvprime;
+	return hash;
 }
 
 static void
 lex_ident(void)
 {
+	uint64_t hash = HASH_BASIS;
 	for (int c; isalnum(c = nextc());)
+		hash ^= (uint64_t) str[i], hash *= fnvprime;
 	// TBD: copy chars into txt hufs
 }
 
