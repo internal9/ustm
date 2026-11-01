@@ -41,54 +41,7 @@ enum {
 	TK_SUB,
 };
 
-// OR
 
-int op_info[UCHAR_MAX + 1] ;
-memset(op_info, -1, UCHAR_MAX + 1);
-
-#define IS_2C	1
-#define IS_3C	2
-
-// 0b00001111
-#define INDEX		 (0x0F)			
-// 0b11110000
-#define MAX_C_BRANCH (0xF0)
-
-op_info['='] = (IS_2C << 4) | 0x00;
-op_info['+'] = (IS_2C << 4) | 0x01;
-op_info['-'] = 2;
-op_info['*'] = 3;
-op_info['/'] = 4;
-op_info['^'] = 5;
-op_info['>'] = (IS_3C << 4) | 0x06;
-op_info['<'] = 7;
-op_info['&'] = 8;
-op_info['%'] = (IS_2C << 4) | 0x09;
-op_info['a'] = last / max value of op,	// if (tb[c] > C_ALPHANUM)
-
-#define op_i(c) (op_info[c] & INDEX)
-#define op_Nc(c) (op_info[c] & (MAX_C_BRANCH << 4))
-
-int tk_2c[] = {
-	[op_i('=')] = {[op_i('=')] = TK_EQ},	// 'TK_EQ' is '==' *NOT* '=', cuz assignment tk (no seperate enum) is '='
-	[op_i('+')] = {[op_i('+')] = TK_INC, [op_i('=')] = TK_ADD_AS},
-	[op_i('>')] = {[op_i('=')] = TK_GEQ, [op_i('>')] = TK_SHR},
-
-	[op_i('%')] = {[op_i('=')] = TK_MOD_AS}
-}
-
-// TODO: can bitmasking somehow end up as '-1'
-if (op_info[c] != -1) {
-	i = op_i(c);
-	if (op_Nc(c) == IS_2C) {
-		if (look = tk_2c[i][op_info[nextc() & INDEX] != 0) {
-			return look;
-		}
-	}
-	else if (op_info[i] & C_BRANCHES == IS_3C) {
-		
-	}
-}
 
 static const char* reserved[] = {
         "null", "true", "false", // keywords that are *literals*
@@ -455,246 +408,6 @@ static inline void init_keywords_map(void)
         
 }
 
-static bool REACHED_END = false; // prob a better way to do this
-
-// TODO: deal with 'src_i' & 'column'
-// IDK: find a way to clean up repititve code
-enum TkType lex_next(struct Tk *p_tk)
-{
-        // find a better way to handle this lol
-        if (REACHED_END == true)
-                ERREXIT("Attempt to lex when EOF is reached");
-        handle_non_lexable();
-        memset(p_tk, 0, sizeof(struct Tk));
-        p_tk->line = src_line;
-        p_tk->column = src_column;
-        
-        char c;
-        switch (c = GET_C()) {
-        case '=':
-                INCPOS();
-                if (GET_C() == '=') {
-                        INCPOS();
-                        p_tk->type_group = G_OP_LOGICAL;
-                        p_tk->type = TK_OP_EQ;
-                }
-                else {
-                        p_tk->type_group = G_OP_ASSIGN;
-                        p_tk->type = TK_OP_AS;
-                }
-                break;
-        case '+':
-                INCPOS();
-                if (GET_C() == '+') {
-                        INCPOS();
-                        p_tk->type_group = G_OP_ARITH;
-                        p_tk->type = TK_OP_INC;
-                } else
-                        lex_op_other_or_assign(p_tk, G_OP_ARITH, TK_OP_ADD, TK_OP_ADD_AS);
-                break;
-        case '-':
-                INCPOS();
-                if (GET_C() == '-') {
-                        INCPOS();
-                        p_tk->type_group = G_OP_ARITH;
-                        p_tk->type = TK_OP_DEC;
-                }
-                else
-                        lex_op_other_or_assign(p_tk, G_OP_ARITH, TK_OP_SUB, TK_OP_SUB_AS);
-                break;
-        case '/':
-                INCPOS();
-                lex_op_other_or_assign(p_tk, G_OP_ARITH, TK_OP_DIV, TK_OP_DIV_AS);
-                break;
-        case '*':
-                INCPOS();
-                lex_op_other_or_assign(p_tk, G_OP_ARITH, TK_OP_MUL, TK_OP_MUL_AS);
-                break;
-        case '!':
-                INCPOS();
-                if (GET_C() == '=') {
-                        INCPOS();
-                        p_tk->type_group = G_OP_LOGICAL;
-                        p_tk->type = TK_OP_NOT_EQ;
-                } else {
-                        p_tk->type_group = G_OP_LOGICAL;
-                        p_tk->type = TK_OP_NOT;
-                } 
-                break;
-        case '^':
-                INCPOS();
-                if (GET_C() == '^') {
-                        INCPOS();
-                        lex_op_other_or_assign(p_tk, G_OP_BITWISE, TK_OP_BXOR, TK_OP_BXOR_AS);
-                } else
-                        lex_op_other_or_assign(p_tk, G_OP_ARITH, TK_OP_POW, TK_OP_POW_AS);
-                break;
-        case '%':
-                INCPOS();
-                lex_op_other_or_assign(p_tk, G_OP_ARITH, TK_OP_MOD, TK_OP_MOD_AS);
-                break;
-        case '&':
-                INCPOS();
-                // maybe add incpos before switch statement?
-                if (GET_C() == '&') {
-                        INCPOS();
-                        p_tk->type_group = G_OP_LOGICAL;
-                        p_tk->type = TK_OP_AND;
-                } else
-                        lex_op_other_or_assign(p_tk, G_OP_BITWISE, TK_OP_BAND, TK_OP_BAND);
-                break;
-        case '|':
-                INCPOS();
-                if (GET_C() == '|') {
-                        INCPOS();
-                        p_tk->type_group = G_OP_LOGICAL;
-                        p_tk->type = TK_OP_OR;
-                } else
-                        lex_op_other_or_assign(p_tk, G_OP_BITWISE, TK_OP_BOR, TK_OP_BOR_AS);
-                break;
-        case '<':
-                INCPOS();
-                if (GET_C() == '<') {
-                        INCPOS();
-                        lex_op_other_or_assign(p_tk, G_OP_BITWISE, TK_OP_BSHL, TK_OP_BSHL_AS);
-                } else {
-                        if (GET_C() == '=') {
-                                INCPOS();
-                                p_tk->type_group = G_OP_LOGICAL;
-                                p_tk->type = TK_OP_LESS_OR_EQ;
-                        } else { 
-                                p_tk->type_group = G_OP_LOGICAL;
-                                p_tk->type = TK_OP_LESS;
-                        }
-                }
-                break;
-        case '>':
-                INCPOS();
-                if (GET_C() == '>') {
-                        INCPOS();
-                        lex_op_other_or_assign(p_tk, G_OP_BITWISE, TK_OP_BSHR, TK_OP_BSHR_AS);
-                } else {
-                        if (GET_C() == '=') {
-                                INCPOS();
-                                p_tk->type_group = G_OP_LOGICAL;
-                                p_tk->type = TK_OP_GREATER_OR_EQ;
-                        } else { 
-                                p_tk->type_group = G_OP_LOGICAL;
-                                p_tk->type = TK_OP_GREATER;
-                        }
-                }
-                break;
-        case ',':
-                INCPOS();
-                p_tk->type_group = G_MISC;
-                p_tk->type = TK_COMMA;
-                break;
-        case '[':
-                INCPOS();
-                p_tk->type_group = G_MISC;
-                p_tk->type = TK_BRACKET_L;
-                break;
-        case ']':
-                INCPOS();
-                p_tk->type_group = G_MISC;
-                p_tk->type = TK_BRACKET_R;
-                break;
-        case '{':
-                INCPOS();
-                p_tk->type_group = G_MISC;
-                p_tk->type = TK_BRACE_L;
-                break;
-        case '}':
-                INCPOS();
-                p_tk->type_group = G_MISC;
-                p_tk->type = TK_BRACE_R;
-                break;
-        case '(':
-                INCPOS();
-                p_tk->type_group = G_MISC;
-                p_tk->type = TK_PAREN_L;
-                break;
-        case ')':
-                INCPOS();
-                p_tk->type_group = G_MISC;
-                p_tk->type = TK_PAREN_R;
-                break;
-        case '?':
-                INCPOS();
-                p_tk->type_group = G_MISC;
-                p_tk->type = TK_QUESTION;
-                break;
-        case ';':
-                INCPOS();
-                p_tk->type_group = G_MISC;
-                p_tk->type = TK_SEMICOLON;
-        case ':':
-                INCPOS();
-                p_tk->type_group = G_MISC;
-                p_tk->type = TK_COLON;
-                break;
-        case '\'':        // 'LIT_CHAR'
-                INCPOS();
-                lex_char(p_tk);
-                break;
-        case '"':        // 'LIT_STR'
-                INCPOS();
-                lex_str(p_tk);
-                break;
-        case '0':
-                INCPOS();
-                c = GET_C();
-                if (c == 'x') {
-                        INCPOS();
-                        lex_hex_int(p_tk);
-                } else if (c == 'b') {
-                        INCPOS();
-                        lex_bin_int(p_tk);
-                } else {
-                        DECPOS();
-                        lex_dec_int_or_num(p_tk);
-                }
-                break;
-        case '.':
-                // no incpos, 'lex_num' needs to read '.' for fraction
-                if (isdigit(NEXT_C()))
-                        lex_num(p_tk);
-                else {
-                        INCPOS();
-                        p_tk->type_group = G_MISC;
-                        p_tk->type = TK_PERIOD;
-                }
-                break;
-        case '_':
-                lex_keyword_or_identifier(p_tk);
-                break;
-        case '\0':
-                if (src_i != src_len)
-                        LEX_ERR("Null terminator '\\0' should be at end of file");
-                p_tk->type_group = G_MISC;
-                p_tk->type = TK_END;
-                // cleanup, since end of file
-                hashmap_free(&keywords_hashmap);
-                REACHED_END = true;
-                break;
-        default:
-                if (isdigit(c))
-                        lex_dec_int_or_num(p_tk);
-                else if (isalpha(c))
-                        lex_keyword_or_identifier(p_tk);
-                else
-                        // Should have more debugging, to handle non-printable characters
-                        // Default argument promotions promote 'c' to 'int', but explicitness just to be fine
-                        if (isprint(c))
-                                LEX_ERR_FMT("Invalid symbol '%c', character code of %d", c, (int) c);
-                        else
-                                LEX_ERR_FMT("Invalid non-printable symbol, character code of %d", (int) c);
-        }
-
-        return p_tk->type;
-}
-
-
 static void
 lex_init(FILE* src_fp)
 {
@@ -702,11 +415,153 @@ lex_init(FILE* src_fp)
   // keywords, etc
 }
 
+int c_cases2[] = {
+	['!'] = TK_NOT_AS,
+};
+
+int c_cases3[] = {
+	['+'] = (TK_INC << 4) | TK_ADD_AS,
+	['-'] = (TK_SUB << 4) | TK_SUB_AS,
+	['&'] = (TK_L_AND << 4) | TK_AND_AS,
+	['|'] = (TK_L_OR << 4) | TK_OR_AS,
+};
+
+int c2_cases3[] = {
+	['<'] = (TK_SH_L << 8) | (TK_SH_L_AS << 4) | (TK_LEQ),
+	['>'] = (TK_SH_R << 8) | (TK_SH_R_AS << 4) | (TK_REQ),
+};
+
+// NOTES: line & column are not recorded only at error
 static int
 lex_next(void)
 {
   int c = getc(src_fp);
-  
+	switch (c) {
+	case '!': case2 = TK_NOT_AS; goto c2;
+	case '^': case2 = TK_XOR_AS; goto c2;
+	case '=':	case2 = TK_EQ; 		 goto c2;			//  return read_next('=', TK_EQ);
+	case '/': case2 = TK_DIV_AS; goto c2;
+	case '*': case2 = TK_MUL_AS; goto c2;
+	case '%': case2 = TK_MOD_AS; goto c2;
+	c2:
+		return nc() == '=' ? case2 : case_default;
+	case '+': case2 = TK_INC; case3 = TK_ADD_AS; goto c3;
+	case '-': case2 = TK_DEC; case3 = TK_SUB_AS; goto c3;
+	case '&': case2 = TK_L_AND; case3 = TK_AND_AS; goto c3;
+	case '|': case2 = TK_L_OR; case3 = TK_OR_AS; goto c3;
+	c3:
+		return ((nc() == c) ? case2 : (nc() == '=' ? case3 : c))
+	case '<': case2 = TK_SH_L; case3 = TK_SH_L_AS; case4 = TK_LEQ;
+		
+	case '>':
+		
+	case ',':
+					INCPOS();
+					p_tk->type_group = G_MISC;
+					p_tk->type = TK_COMMA;
+					break;
+	case '[':
+					INCPOS();
+					p_tk->type_group = G_MISC;
+					p_tk->type = TK_BRACKET_L;
+					break;
+	case ']':
+					INCPOS();
+					p_tk->type_group = G_MISC;
+					p_tk->type = TK_BRACKET_R;
+					break;
+	case '{':
+					INCPOS();
+					p_tk->type_group = G_MISC;
+					p_tk->type = TK_BRACE_L;
+					break;
+	case '}':
+					INCPOS();
+					p_tk->type_group = G_MISC;
+					p_tk->type = TK_BRACE_R;
+					break;
+	case '(':
+					INCPOS();
+					p_tk->type_group = G_MISC;
+					p_tk->type = TK_PAREN_L;
+					break;
+	case ')':
+					INCPOS();
+					p_tk->type_group = G_MISC;
+					p_tk->type = TK_PAREN_R;
+					break;
+	case '?':
+					INCPOS();
+					p_tk->type_group = G_MISC;
+					p_tk->type = TK_QUESTION;
+					break;
+	case ';':
+					INCPOS();
+					p_tk->type_group = G_MISC;
+					p_tk->type = TK_SEMICOLON;
+	case ':':
+					INCPOS();
+					p_tk->type_group = G_MISC;
+					p_tk->type = TK_COLON;
+					break;
+	case '\'':        // 'LIT_CHAR'
+					INCPOS();
+					lex_char(p_tk);
+					break;
+	case '"':        // 'LIT_STR'
+					INCPOS();
+					lex_str(p_tk);
+					break;
+	case '0':
+					INCPOS();
+					c = GET_C();
+					if (c == 'x') {
+									INCPOS();
+									lex_hex_int(p_tk);
+					} else if (c == 'b') {
+									INCPOS();
+									lex_bin_int(p_tk);
+					} else {
+									DECPOS();
+									lex_dec_int_or_num(p_tk);
+					}
+					break;
+	case '.':
+					// no incpos, 'lex_num' needs to read '.' for fraction
+					if (isdigit(NEXT_C()))
+									lex_num(p_tk);
+					else {
+									INCPOS();
+									p_tk->type_group = G_MISC;
+									p_tk->type = TK_PERIOD;
+					}
+					break;
+	case '_':
+					lex_keyword_or_identifier(p_tk);
+					break;
+	case '\0':
+					if (src_i != src_len)
+									LEX_ERR("Null terminator '\\0' should be at end of file");
+					p_tk->type_group = G_MISC;
+					p_tk->type = TK_END;
+					// cleanup, since end of file
+					hashmap_free(&keywords_hashmap);
+					REACHED_END = true;
+					break;
+	default:
+					if (isdigit(c))
+									lex_dec_int_or_num(p_tk);
+					else if (isalpha(c))
+									lex_keyword_or_identifier(p_tk);
+					else
+									// Should have more debugging, to handle non-printable characters
+									// Default argument promotions promote 'c' to 'int', but explicitness just to be fine
+									if (isprint(c))
+													LEX_ERR_FMT("Invalid symbol '%c', character code of %d", c, (int) c);
+									else
+													LEX_ERR_FMT("Invalid non-printable symbol, character code of %d", (int) c);
+	}
+
 }
 
 static int
