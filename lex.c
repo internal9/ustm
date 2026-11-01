@@ -6,7 +6,7 @@
 
 #include <stdio.h>
 
-extern int ustm_status;  // FROM: main.c
+extern int ustm_err;  // FROM: main.c
 
 static FILE* src_fp;
 
