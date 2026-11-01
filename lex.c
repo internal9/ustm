@@ -369,50 +369,51 @@ static const int c2_cases4[] = {
 static int
 lex_next(void)
 {
-  int c = nextc();
-	switch (c) {
-	case ' ': case '\n': case '\r': case '\t': case '\v': case '\f':
-		skip_whitespace(); c = nextc();
-	case EOF:
-		if (ferror(src_fp)) err("Lexing source read error") return EOF;
-	case '/':
-		c = nextc()
-		if (c == '/' || c == '*') skip_comment(c == '*');
-		else c = lastc();
-	case '!': case '=': case '*': case '%':
-		return ( (nextc() == '=') ? (c_cases2[c]) : (c) );
-	case '+': case '-': case '&': case '|':
-		if (nextc() == c) return c_cases3[c] & 0xF0;
-		return (nextc() == '=') ? (c_cases4[c] & 0x0F) : (c);
-	case '<': case '>': case '^':
-		if (nextc() == '=') return c2_cases4[c] & 0x00F;
-		if (currentc() == c) 	 return (nextc() == '=') ? (c2_cases4[c] & 0x0F0) : (c2_cases4[c] & 0xF00);
-		return c;
-		
-	case ',': case '[': case ']': case '{': case '}':
-	case '(': case ')': case '?': case ':': case ';':
-		return c;
-	case '\'': lex_char(false); return TK_LIT_CHAR;
-	case '"':  lex_str();				return TK_LIT_STR;
-	case '0':
-					c = nextc();
-					if (c == 'x') 		 lex_hex_int(p_tk);	return TK_LIT_INT;
-					else if (c == 'b') lex_bin_int(p_tk);	return TK_LIT_INT;
-	case '1': case '2': case '3': case '4': case '5':
-	case '6': case '7': case '8': case '9':
-					return lex_dec_int_or_num(p_tk);
-	case '.':
-					// no incpos, 'lex_num' needs to read '.' for fraction
-					if (isdigit(nextc()))
-									lex_num();
-					else return '.';
-	case '_': return lex_keyword_or_identifier(p_tk);
-	default:
-					if (isdigit(c)) 		 			return lex_dec_int_or_num(p_tk);
-					else if (isalpha(c))		  return lex_keyword_or_identifier(p_tk);
-					else err_invalid_char(c);	return EOF;
+	for (int c; ; c = nextc()) {
+		switch (c) {
+		case ' ': case '\n': case '\r': case '\t': case '\v': case '\f':
+			skip_whitespace(); break;
+		case EOF:
+			if (ferror(src_fp)) err("Lexing source read error");
+			return EOF;
+		case '/':
+			c = nextc()
+			if (c == '/' || c == '*') skip_comment(c == '*');
+			else c = lastc();
+		case '!': case '=': case '*': case '%':
+			return ( (nextc() == '=') ? (c_cases2[c]) : (c) );
+		case '+': case '-': case '&': case '|':
+			if (nextc() == c) return c_cases3[c] & 0xF0;
+			return (nextc() == '=') ? (c_cases4[c] & 0x0F) : (c);
+		case '<': case '>': case '^':
+			if (nextc() == '=') return c2_cases4[c] & 0x00F;
+			if (currentc() == c) 	 return (nextc() == '=') ? (c2_cases4[c] & 0x0F0) : (c2_cases4[c] & 0xF00);
+			return c;
+			
+		case ',': case '[': case ']': case '{': case '}':
+		case '(': case ')': case '?': case ':': case ';':
+			return c;
+		case '\'': lex_char(false); return TK_LIT_CHAR;
+		case '"':  lex_str();				return TK_LIT_STR;
+		case '0':
+						c = nextc();
+						if (c == 'x') 		 lex_hex_int(p_tk);	return TK_LIT_INT;
+						else if (c == 'b') lex_bin_int(p_tk);	return TK_LIT_INT;
+		case '1': case '2': case '3': case '4': case '5':
+		case '6': case '7': case '8': case '9':
+						return lex_dec_int_or_num(p_tk);
+		case '.':
+						// no incpos, 'lex_num' needs to read '.' for fraction
+						if (isdigit(nextc()))
+										lex_num();
+						else return '.';
+		case '_': return lex_keyword_or_identifier(p_tk);
+		default:
+						if (isdigit(c)) 		 			return lex_dec_int_or_num(p_tk);
+						else if (isalpha(c))		  return lex_keyword_or_identifier(p_tk);
+						else err_invalid_char(c);	return EOF;
+		}
 	}
-
 }
 
 // NOTE: no peek func, each codegen func will end off with the current tk being next after last one needed
