@@ -9,7 +9,7 @@
 #include <errno.h>
 #include <stdbool.h>
 
-											// NOTE: 'abort()' bypasses and goes straight to 'exit(1)'
+									// NOTE: 'abort()' bypasses and goes straight to 'exit(1)'
 int ustm_err = 0;	// USED BY: ustm.c, lex.c, codegen.c
 
 #define err(msg) (fprintf(stderr, msg "\n"), (ustm_err = 1))
