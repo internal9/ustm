@@ -252,32 +252,30 @@ static void lex_keyword_or_identifier(struct Tk *p_tk)
 
 
 // Only *ascii* chars will be supported, may be changed to *utf-8*, and allow wide chars
-static void lex_char(struct Tk *p_tk)
+static int lex_lit_char(struct Tk *p_tk)
 {
-        p_tk->type_group = G_LITERAL;
-        p_tk->type = TK_LIT_CHAR;
-
-        char c = GET_C();
-        if (c == '\'')
-                LEX_ERR("Character literal cannot be empty");
-        if (c == '\\') {
-                INCPOS();
-                c = GET_C();
-                int esc_char = esc_seq_from_char(c);
-                if (esc_char == -1)
-                        LEX_ERR("Invalid escape sequence");
-                p_tk->value.c = (char) esc_char;
-                        
-        }
-        else if (c == '\t')
-                handle_tab_char();
-        else if (!isalnum(c) && !isspace(c) && !ispunct(c) && c != '_')
-                LEX_ERR("Invalid character literal.");
-        INCPOS();
-        c = GET_C();
-        if (c != '\'')
-                LEX_ERR("Expected ''' to end character literal.");
-        INCPOS();
+	switch (getc(src_fp)) {
+	case '\'': err("Character literal cannot be empty"); return;
+	case '\\': 
+	}
+	
+	if (c == '\\') {
+					c = GET_C();
+					int esc_char = esc_seq_from_char(c);
+					if (esc_char == -1)
+									LEX_ERR("Invalid escape sequence");
+					p_tk->value.c = (char) esc_char;
+									
+	}
+	else if (c == '\t')
+					handle_tab_char();
+	else if (!isalnum(c) && !isspace(c) && !ispunct(c) && c != '_')
+					LEX_ERR("Invalid character literal.");
+	INCPOS();
+	c = GET_C();
+	if (c != '\'')
+					LEX_ERR("Expected ''' to end character literal.");
+	INCPOS();
 }
 
 // so efficient!
@@ -415,7 +413,7 @@ lex_init(FILE* src_fp)
   // keywords, etc
 }
 
-int c_cases2[] = {
+static const int c_cases2[] = {
 	['!'] = TK_NOT_AS,
 	['^'] = TK_XOR_AS,
 	['='] = TK_EQ,
@@ -424,21 +422,17 @@ int c_cases2[] = {
 	['%'] = TK_MOD_AS
 };
 
-int c_cases3[] = {
+static const int c_cases3[] = {
 	['+'] = (TK_INC << 4) | TK_ADD_AS,
 	['-'] = (TK_DEC << 4) | TK_SUB_AS,
 	['&'] = (TK_L_AND << 4) | TK_AND_AS,
 	['|'] = (TK_L_OR << 4) | TK_OR_AS,
 };
 
-int c2_cases3[] = {
+static const int c2_cases3[] = {
 	['<'] = (TK_SH_L << 8) | (TK_SH_L_AS << 4) | (TK_LEQ),
 	['>'] = (TK_SH_R << 8) | (TK_SH_R_AS << 4) | (TK_REQ),
 };
-
-#define C_CASES2(c)				 				 ( (nc() == '=') ? (c_cases2[c]) : c )
-#define C_CASES3(c, case2, case3)	 ( (nc() == '=') ? (c_cases3[c]) : (cc() == c  )
-#define C2_CASES3(c, case2, case3) (
 
 // NOTES: line & column are not recorded only at error
 static int
@@ -447,71 +441,20 @@ lex_next(void)
   int c = getc(src_fp);
 	switch (c) {
 	case '!': case '^': case '=': case '/': case '*': case '%':
-		return nc() == '=' ? c_cases2[c] : c;
+		return ( (nc() == '=') ? (c_cases2[c]) : (c) );
 	case '+': case '-': case '&': case '|':
-		return ((nc() == c) ? (c_cases3[c] & CASE2) : (nc() == '=' ? (c_cases3[c] & CASE1) : c))
+		if (nc() == c) return c_cases3[c] & 0xF0;
+		return (cc() == '=') ? (c_cases3[c] & 0x0F) : c;
 	case '<': case '>':
-		
-		
-	case ',':
-					INCPOS();
-					p_tk->type_group = G_MISC;
-					p_tk->type = TK_COMMA;
-					break;
-	case '[':
-					INCPOS();
-					p_tk->type_group = G_MISC;
-					p_tk->type = TK_BRACKET_L;
-					break;
-	case ']':
-					INCPOS();
-					p_tk->type_group = G_MISC;
-					p_tk->type = TK_BRACKET_R;
-					break;
-	case '{':
-					INCPOS();
-					p_tk->type_group = G_MISC;
-					p_tk->type = TK_BRACE_L;
-					break;
-	case '}':
-					INCPOS();
-					p_tk->type_group = G_MISC;
-					p_tk->type = TK_BRACE_R;
-					break;
-	case '(':
-					INCPOS();
-					p_tk->type_group = G_MISC;
-					p_tk->type = TK_PAREN_L;
-					break;
-	case ')':
-					INCPOS();
-					p_tk->type_group = G_MISC;
-					p_tk->type = TK_PAREN_R;
-					break;
-	case '?':
-					INCPOS();
-					p_tk->type_group = G_MISC;
-					p_tk->type = TK_QUESTION;
-					break;
-	case ';':
-					INCPOS();
-					p_tk->type_group = G_MISC;
-					p_tk->type = TK_SEMICOLON;
-	case ':':
-					INCPOS();
-					p_tk->type_group = G_MISC;
-					p_tk->type = TK_COLON;
-					break;
-	case '\'':        // 'LIT_CHAR'
-					INCPOS();
-					lex_char(p_tk);
-					break;
-	case '"':        // 'LIT_STR'
-					INCPOS();
-					lex_str(p_tk);
-					break;
+		if (nc() == '=') return c2_cases3[c] & 0x00F;
+		if (cc() == c) 	 return (nc() == '=') ? (c2_cases3[c] & 0x0F0) : (c2_cases3[c] & 0xF00);
+		return c;
+	case ',': case '[': case ']': case '{': case '}':
+	case '(': case ')': case '?': case ':': case ';':
+		return c;
+	case '\'': return lex_char(p_tk);
+	case '"':  lex_str(p_tk); return TK_STR;
 	case '0':
-					INCPOS();
 					c = GET_C();
 					if (c == 'x') {
 									INCPOS();
@@ -533,19 +476,12 @@ lex_next(void)
 									p_tk->type_group = G_MISC;
 									p_tk->type = TK_PERIOD;
 					}
-					break;
 	case '_':
 					lex_keyword_or_identifier(p_tk);
-					break;
 	case '\0':
 					if (src_i != src_len)
 									LEX_ERR("Null terminator '\\0' should be at end of file");
 					p_tk->type_group = G_MISC;
-					p_tk->type = TK_END;
-					// cleanup, since end of file
-					hashmap_free(&keywords_hashmap);
-					REACHED_END = true;
-					break;
 	default:
 					if (isdigit(c))
 									lex_dec_int_or_num(p_tk);
