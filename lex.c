@@ -31,6 +31,8 @@ static char tk_val_txt[512];  // TBD: copy char (& process escape seqs) per fget
 static ustm_int tk_val_int;  // NOTE: Holds character values too
 static ustm_num tk_val_num;
 
+static int txt_n = 0;
+
 /* NOTES:
  * - single-char tks' values each == respective native char code
  * - unsure if even beyond 255, special things are reserved
@@ -277,75 +279,25 @@ esc_seq(c2)
 	}
 }
 
-// so efficient!
-static void
-lex_str(struct Tk *p_tk)
-{
-        p_tk->type_group = G_LITERAL;
-        p_tk->type = TK_LIT_STR;
-        long src_i_start = src_i;
-        long escape_seq_count = 0;
-        char c;
-        // starts on the char after the beginning '"'
-        while ((c = GET_C()) != '"') {
-                if (c == '\0' || c == '\n') {
-                        // read at last char of string
-                        DECPOS();
-                        LEX_ERR("Unclosed string literal.");
-                }
-                else if (c == '\\') {
-                        c = NEXT_C();
-                        escape_seq_count++;
-                        if (c != '\0' && c != '\n')
-                                INCPOS();
-                }
-                INCPOS();
-        }
-
-        // why
-        long len = (src_i - src_i_start) - escape_seq_count;
-        p_tk->value.txt = malloc((size_t) len + 1);
-        if (p_tk->value.txt == NULL)
-                LEX_ERR("Failed memory alloc for string literal");
-        p_tk->value.txt[len] = '\0';
-        SET_POS(src_i_start);
-
-        for (long i = 0; i < len; i++) {
-                if ((c = GET_C()) == '\\') {
-                        INCPOS();
-                        c = GET_C();
-                        int esc_char = esc_seq_from_c);
-                        if (esc_char == -1)
-                                LEX_ERR("Invalid escape sequence");
-                        c = (char) esc_char;
-                        INCPOS();
-                }
-                else if (c == '\t')
-                        handle_tab_);
-                // prob needs rework idk for other special chars
-                else {
-                        if (!isalnum(c) && !isspace(c) && !ispunct(c))
-                                LEX_ERR("Invalid character in string literal");
-                        INCPOS();
-                }
-                p_tk->value.txt[i] = c;
-        }
-        // char after ending '"'
-        INCPOS();
-}
-
-static void
-lex_char(void)
+// used to lex a lit char & used by lit str cuz lazy
+static int
+lex_char(bool is_tk_lit_str)
 {
 	int c = getc(src_fp);
 	switch (c) {
 	case '\'': err("Char cannot be empty"); return;
-	case '\\': tk_val_c = esc_seq(getc(src_fp)); break;
-	case '_': case '\t':
+	case '\\': c = esc_seq(getc(src_fp)); 	break;
+	case '_': case '\t': 										break;
 	default:
 		if (!isalnum(c) && !isspace(c) && !ispunct(c) && c != '_') err("Char must be ASCII idk");
-		tk_val_c = c;
 	}
+	if (is_tk_lit_str) tk_val_txt[txt_n++] = c; else tk_val_int = c;
+}
+
+static void
+lex_str(void)
+{
+	for (int i = 0; i < MAX_TXT_N; i++) lex_char(true);
 }
 
 // whitespace characters are non-printable characters that define text layouts
