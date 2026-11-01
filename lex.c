@@ -21,13 +21,14 @@ typedef double ustm_num;
 // NOTE: Assumption, despite ambiguity
 #define TAB_WIDTH_GUESS 8
 
-
+#define MAX_TXT_N 512
 #define TK_IDENT_START = index of last reserved
 
 static char syms[MAX_SYMS];        // store reserved &
 static something ident_data[MAX_SYMS - TK_IDENT_START];
 
-static char tk_val_txt[512];  // TBD: copy char (& process escape seqs) per fgetc?
+static char tk_val_txt[MAX_TXT_N];  // TBD: copy char (& process escape seqs) per fgetc?
+// static char *tk_val_txt; NOTE: lol change it to this later (NEVER HAPPENING) so str lens can be handled, buffering may require >= 1 block, or just fread the entire thing
 static ustm_int tk_val_int;  // NOTE: Holds character values too
 static ustm_num tk_val_num;
 
@@ -265,6 +266,9 @@ static int lex_lit_struct Tk *p_tk)
 	INCPOS();
 }
 
+// TBD: current c variable
+#define nextc() (getc(src_fp)
+
 static inline char
 esc_seq(c2)
 {
@@ -280,24 +284,34 @@ esc_seq(c2)
 }
 
 // used to lex a lit char & used by lit str cuz lazy
-static int
+static void
 lex_char(bool is_tk_lit_str)
 {
-	int c = getc(src_fp);
+	int c = nextc();
 	switch (c) {
-	case '\'': err("Char cannot be empty"); return;
-	case '\\': c = esc_seq(getc(src_fp)); 	break;
+	case '\'':
+		if (is_tk_lit_str) break;
+		err("Char cannot be empty"); return;
+	case '\\': c = esc_seq(nextc()); 	break;
 	case '_': case '\t': 										break;
 	default:
 		if (!isalnum(c) && !isspace(c) && !ispunct(c) && c != '_') err("Char must be ASCII idk");
 	}
-	if (is_tk_lit_str) tk_val_txt[txt_n++] = c; else tk_val_int = c;
+	if (is_tk_lit_str) tk_val_txt[txt_n++] = c;
+	else {
+		if (nextc() != '\'') err("Expected closing '\\'");
+		tk_val_int = c;
+	}
 }
 
 static void
 lex_str(void)
 {
-	for (int i = 0; i < MAX_TXT_N; i++) lex_char(true);
+	for (int i = 0; i < MAX_TXT_N; i++) {
+		lex_char(true);
+		if (ustm_err) return;
+	}
+	if (nextc() != '\"') err("Expected closing '\"'");
 }
 
 // whitespace characters are non-printable characters that define text layouts
