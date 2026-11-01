@@ -14,10 +14,9 @@ static FILE* src_fp;
 typedef int64_t ustm_int;
 typedef double ustm_num;
 
-typedef int file_pos;
-
-static file_pos line = 1;
-static file_pos column = 0;
+//typedef int file_pos;
+// static file_pos line = 1;
+// static file_pos column = 0;
 
 // NOTE: Assumption, despite ambiguity
 #define TAB_WIDTH_GUESS 8
@@ -67,20 +66,6 @@ static inline void handle_newline_char(void)
         src_i++;
         src_line++;
         src_column = 0;
-}
-
-// IF invalid char for escape sequence, -1 is returned
-static inline int esc_seq_from_char(char c)
-{
-        switch (c) {
-        case '0': return '\0';
-        case 'n': return '\n';
-        case 't': return '\t';
-        case '\\': return '\\';
-        case '\'': return '\'';
-        case '"': return '"';
-        default: return -1;
-        }
 }
 
 // support octal integers?
@@ -252,7 +237,7 @@ static void lex_keyword_or_identifier(struct Tk *p_tk)
 
 
 // Only *ascii* chars will be supported, may be changed to *utf-8*, and allow wide chars
-static int lex_lit_char(struct Tk *p_tk)
+static int lex_lit_struct Tk *p_tk)
 {
 	switch (getc(src_fp)) {
 	case '\'': err("Character literal cannot be empty"); return;
@@ -261,14 +246,14 @@ static int lex_lit_char(struct Tk *p_tk)
 	
 	if (c == '\\') {
 					c = GET_C();
-					int esc_char = esc_seq_from_char(c);
+					int esc_char = esc_seq_from_c);
 					if (esc_char == -1)
 									LEX_ERR("Invalid escape sequence");
 					p_tk->value.c = (char) esc_char;
 									
 	}
 	else if (c == '\t')
-					handle_tab_char();
+					handle_tab_);
 	else if (!isalnum(c) && !isspace(c) && !ispunct(c) && c != '_')
 					LEX_ERR("Invalid character literal.");
 	INCPOS();
@@ -278,8 +263,23 @@ static int lex_lit_char(struct Tk *p_tk)
 	INCPOS();
 }
 
+static inline char
+esc_seq(c2)
+{
+	switch(c2) {
+	case '0':  return '\0';
+	case 'n':  return '\n';
+	case 't':  return '\t';
+	case '\\': return '\\';
+	case '\'': return '\'';
+	case '"':  return '"';
+	default: 	 err("Invalid escape sequence"); return -1;
+	}
+}
+
 // so efficient!
-static void lex_str(struct Tk *p_tk)
+static void
+lex_str(struct Tk *p_tk)
 {
         p_tk->type_group = G_LITERAL;
         p_tk->type = TK_LIT_STR;
@@ -314,14 +314,14 @@ static void lex_str(struct Tk *p_tk)
                 if ((c = GET_C()) == '\\') {
                         INCPOS();
                         c = GET_C();
-                        int esc_char = esc_seq_from_char(c);
+                        int esc_char = esc_seq_from_c);
                         if (esc_char == -1)
                                 LEX_ERR("Invalid escape sequence");
                         c = (char) esc_char;
                         INCPOS();
                 }
                 else if (c == '\t')
-                        handle_tab_char();
+                        handle_tab_);
                 // prob needs rework idk for other special chars
                 else {
                         if (!isalnum(c) && !isspace(c) && !ispunct(c))
@@ -334,6 +334,20 @@ static void lex_str(struct Tk *p_tk)
         INCPOS();
 }
 
+static void
+lex_char(void)
+{
+	int c = getc(src_fp);
+	switch (c) {
+	case '\'': err("Char cannot be empty"); return;
+	case '\\': tk_val_c = esc_seq(getc(src_fp)); break;
+	case '_': case '\t':
+	default:
+		if (!isalnum(c) && !isspace(c) && !ispunct(c) && c != '_') err("Char must be ASCII idk");
+		tk_val_c = c;
+	}
+}
+
 // whitespace characters are non-printable characters that define text layouts
 static bool handle_whitespace(void)
 {
@@ -341,9 +355,9 @@ static bool handle_whitespace(void)
         if (!isspace(c)) return false;
         while (isspace(c = GET_C()))
                 if (c == '\t')
-                        handle_tab_char();
+                        handle_tab_);
                 else if (c == '\n')
-                        handle_newline_char();
+                        handle_newline_);
                 else
                         INCPOS();
         return true;
@@ -400,7 +414,7 @@ static inline void init_keywords_map(void)
         hashmap_init(&keywords_hashmap,
                      HASHMAP_INIT_SIZE + HASHMAP_INIT_SIZE / 4);
         for (int i = 0; i < (int) (sizeof keywords / sizeof *keywords); i++)
-                // Keyword enums are in order startiing from 'TK_KW_NULL'
+                // Keyword enumlex_chars are in order startiing from 'TK_KW_NULL'
                 hashmap_put_int(&keywords_hashmap, keywords[i], strlen(keywords[i]),
                                 (int) TK_KW_NULL + i);
         
