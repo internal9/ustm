@@ -1,7 +1,7 @@
 /* NOTES:
  * - read all of file into memory then byte by byte faster than byte per disk read?
  * - chunking necessary for embedded only?
- * - 
+ * - fixed-size 32-bit instrs => byc constant table for strings & etc w/ large bytes # => 
  */
 
 #include <stdio.h>
@@ -21,12 +21,13 @@ typedef double ustm_num;
 // NOTE: Assumption, despite ambiguity
 #define TAB_WIDTH_GUESS 8
 
-// applies to kws & user-defined idents (var, func name, etc)
+// NOTE: applies to kws & user-defined idents (var, func name, etc)
 #define MAX_IDENT_LEN 64
 #define MAX_STR_LEN 512
+#define MAX_IDENTS 256
 #define TK_IDENT_START = index of last reserved
 
-static char idents[MAX_SYMS];        // store kws & 
+static char idents[MAX_IDENTS];
 static something syms[];
 
 // redundant for some cases?
@@ -204,18 +205,19 @@ try_lex_num:
         lex_num(p_tk);
 }
 
+// Static hashing
 #define HASH_LOAD_FACTOR 75
 // FNV Constants for 32-Bit
 #define HASH_BASIS (uint32_t) 0x811c9dc5
 #define HASH_PRIME (uint32_t) 0x01000193
-#define HASH_SIZE ( / HASH_LOAD_FACTOR)
+#define HASH_SIZE (() / HASH_LOAD_FACTOR)
 
 static void
 lex_ident(void)
 {
 	uint32_t hash = HASH_BASIS;
 	for (int c; isalnum(c = nextc()); (hash ^= c, hash *= HASH_PRIME));
-	hash &= HASH_SIZE;
+	hash &= (HASH_SIZE - 1);
 	// TBD: copy chars into txt bufs
 }
 
