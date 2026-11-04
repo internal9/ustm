@@ -202,25 +202,17 @@ try_lex_num:
 }
 
 #define MAX_LOAD_FACTOR 80
-#define HASH_BASIS 0xcbf29ce484222325
-#define HASH_PRIME 0x100000001b3
-
-uint64_t fnv1a_hash(const char *str, size_t str_len)
-{
-	
-
-	for (size_t i = 0; i < str_len; i++)
-		hash ^= (uint64_t) str[i], hash *= fnvprime;
-	return hash;
-}
+// FNV Constants for 32-Bit
+#define HASH_BASIS (uint32_t) 0x811c9dc5
+#define HASH_PRIME (uint32_t) 0x01000193
 
 static void
 lex_ident(void)
 {
-	uint64_t hash = HASH_BASIS;
-	for (int c; isalnum(c = nextc());)
-		hash ^= (uint64_t) str[i], hash *= fnvprime;
-	// TBD: copy chars into txt hufs
+	uint32_t hash = HASH_BASIS;
+	for (int c; isalnum(c = nextc()); (hash ^= c, hash *= HASH_PRIME));
+	
+	// TBD: copy chars into txt bufs
 }
 
 // TBD: current c variable
@@ -269,7 +261,7 @@ lex_str(void)
 	for (;;) {
 		if (txt_n > MAX_TXT_N) err("String size exceeded limit"); return;
 		if (lex_char(true)) return;
-		if (ustm_err) return;
+		if (ustm_err) break;
 	}
 	err("Unterminated string");
 }
