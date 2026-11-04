@@ -21,13 +21,16 @@ typedef double ustm_num;
 // NOTE: Assumption, despite ambiguity
 #define TAB_WIDTH_GUESS 8
 
-#define MAX_TXT_N 512
+// applies to kws & user-defined idents (var, func name, etc)
+#define MAX_IDENT_LEN 64
+#define MAX_STR_LEN 512
 #define TK_IDENT_START = index of last reserved
 
-static char syms[MAX_SYMS];        // store reserved &
-static something ident_data[MAX_SYMS - TK_IDENT_START];
+static char idents[MAX_SYMS];        // store kws & 
+static something syms[];
 
-static char tk_val_txt[MAX_TXT_N];  // TBD: copy char (& process escape seqs) per fgetc?
+// redundant for some cases?
+static char tk_val_txt[MAX_TXT_LEN];  // TBD: copy char (& process escape seqs) per fgetc?
 // static char *tk_val_txt; NOTE: lol change it to this later (NEVER HAPPENING) so str lens can be handled, buffering may require >= 1 block, or just fread the entire thing
 static ustm_int tk_val_int;  // NOTE: Holds character values too
 static ustm_num tk_val_num;
@@ -201,17 +204,18 @@ try_lex_num:
         lex_num(p_tk);
 }
 
-#define MAX_LOAD_FACTOR 80
+#define HASH_LOAD_FACTOR 75
 // FNV Constants for 32-Bit
 #define HASH_BASIS (uint32_t) 0x811c9dc5
 #define HASH_PRIME (uint32_t) 0x01000193
+#define HASH_SIZE ( / HASH_LOAD_FACTOR)
 
 static void
 lex_ident(void)
 {
 	uint32_t hash = HASH_BASIS;
 	for (int c; isalnum(c = nextc()); (hash ^= c, hash *= HASH_PRIME));
-	
+	hash &= HASH_SIZE;
 	// TBD: copy chars into txt bufs
 }
 
@@ -259,7 +263,7 @@ static void
 lex_str(void)
 {
 	for (;;) {
-		if (txt_n > MAX_TXT_N) err("String size exceeded limit"); return;
+		if (txt_n > MAX_TXT_LEN) err("String size exceeded limit"); return;
 		if (lex_char(true)) return;
 		if (ustm_err) break;
 	}
