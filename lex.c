@@ -37,11 +37,17 @@ typedef double  ustm_num;
 // TBD: Might need const table (including string) in byc => string interning too? ORRR 'pushstr' 'movestr'
 #define ID_HASH_SIZE 512
 
-static something ids[HASH_SIZE];
+static int tk_id = TK_ID_FIRST;
+
+static struct {
+  char name[MAX_ID_LEN];
+  int len;
+  int tk;
+} ids[ID_HASH_SIZE] = {0};
 static something syms[];
 
 // redundant for some cases?
-static char tk_val_txt[MAX_TXT_LEN];  // TBD: copy char (& process escape seqs) per fgetc?
+static char tk_val_txt[MAX_STR_LEN];  // TBD: copy char (& process escape seqs) per fgetc?
 // static char *tk_val_txt; NOTE: lol change it to this later (NEVER HAPPENING) so str lens can be handled, buffering may require >= 1 block, or just fread the entire thing
 static ustm_int tk_val_int;  // NOTE: Holds character values too
 static ustm_num tk_val_num;
@@ -53,6 +59,8 @@ static int txt_n = 0;
 #define TK_KW_FIRST       TK_NULL
 // NOTE: 'UD' => 'user-defined'
 #define TK_UD_ID_FIRST    (TK_REF + 1)
+
+static int tk_id = TK_ID_FIRST;
 
 /* NOTES:
  * - single-char tks' values each == respective native char code
@@ -248,7 +256,7 @@ try_lex_num:
 #define HASH_PRIME (uint32_t) 0x01000193
 #define FNV1A(hash, c) ((hash ^ c) * HASH_PRIME)
 
-#define IS_ID_C(c) (isalnum(c))
+#define IS_ID_C(c) (isalnum((c)) || (c) ==  '_')
 
 // TBD
 static void
@@ -257,15 +265,22 @@ id_put()
 
 }
 
+// TBD: 
+// TODO: reset tk_val_txt buf & txt_n
+// TODO: 'isalnum' => handle _
 static void
 lex_id(void)
 {
+  
 	uint32_t hash = HASH_BASIS;
-  // TODO: 'isalnum' => handle _
-	for (int c; isalnum(c = nextc()); FNV1A(hash, c));
+	for (int c; c = nextc(), IS_ID_C(c); FNV1A(hash, c), tk_val_txt[txt_n++] = c);
 	hash &= (HASH_SIZE - 1);
 	for (int i = 0; i < HASH_SIZE; i++) {
-		ids[(hash + i) & (HASH_SIZE - 1)];
+    bucket = ids[((int) hash + i) & (HASH_SIZE - 1)];
+		if (bucket.len == 0) {
+      memcpy(&bucket.name, tk_val_txt, txt_n);
+      bucket.len = txt_n;
+    }
 	}
 	// TBD: copy chars into txt bufs
 }
