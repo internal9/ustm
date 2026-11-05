@@ -27,12 +27,13 @@ typedef double ustm_num;
 #define TAB_WIDTH_GUESS 8
 
 // NOTE: applies to kws & user-defined idents (var, func name, etc)
-#define MAX_IDENT_LEN 64
-#define MAX_STR_LEN 	512
-#define MAX_IDENTS 		256
-#define TK_IDENT_START = index of last reserved
+#define MAX_IDENT_LEN   64
+#define MAX_STR_LEN     512
+// NOTE: Static hashing
+// TBD: Might need const table (including string) in byc => string interning too? ORRR 'pushstr' 'movestr'
+#define IDENT_HASH_SIZE 512
 
-static char idents[MAX_IDENTS];
+static char idents[HASH_SIZE];
 static something syms[];
 
 // redundant for some cases?
@@ -61,6 +62,8 @@ enum {
 	TK_POW_AS,
 
 };
+
+#define TK_IDENT_FIRST = idk
 
 
 
@@ -215,9 +218,6 @@ try_lex_num:
         lex_num(p_tk);
 }
 
-// Static hashing
-#define HASH_LOAD_FACTOR 75
-#define HASH_SIZE ((MAX_IDENTS * 100) / HASH_LOAD_FACTOR)
 // FNV Constants for 32-Bit
 #define HASH_BASIS (uint32_t) 0x811c9dc5
 #define HASH_PRIME (uint32_t) 0x01000193
@@ -229,7 +229,7 @@ lex_ident(void)
 	for (int c; isalnum(c = nextc()); (hash ^= c, hash *= HASH_PRIME));
 	hash &= (HASH_SIZE - 1);
 	for (int i = 0; i < HASH_SIZE; i++) {
-		(hash + i) & (HASH_SIZE - 1)
+		idents[(hash + i) & (HASH_SIZE - 1)];
 	}
 	// TBD: copy chars into txt bufs
 }
