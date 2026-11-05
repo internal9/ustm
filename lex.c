@@ -246,15 +246,23 @@ try_lex_num:
 // FNV Constants for 32-Bit
 #define HASH_BASIS (uint32_t) 0x811c9dc5
 #define HASH_PRIME (uint32_t) 0x01000193
+#define FNV1A(hash, c) ((hash ^ c) * HASH_PRIME)
 
 #define IS_ID_C(c) (isalnum(c))
+
+// TBD
+static void
+id_put()
+{
+
+}
 
 static void
 lex_id(void)
 {
 	uint32_t hash = HASH_BASIS;
   // TODO: 'isalnum' => handle _
-	for (int c; isalnum(c = nextc()); (hash ^= c, hash *= HASH_PRIME));
+	for (int c; isalnum(c = nextc()); FNV1A(hash, c));
 	hash &= (HASH_SIZE - 1);
 	for (int i = 0; i < HASH_SIZE; i++) {
 		ids[(hash + i) & (HASH_SIZE - 1)];
