@@ -291,7 +291,6 @@ lex_char(bool is_tk_lit_str)
 	int c = nextc();
 	switch (c) {
 	case '\'':
-		if (is_tk_lit_str) break;
 		err("Char cannot be empty"); return;
 	case '\\': c = esc_seq(nextc());
 	case '"': if (is_tk_lit_str) return false;	// NOTE: true: non-terminated
@@ -312,9 +311,8 @@ lex_str(void)
 	for (;;) {
 		if (txt_n > MAX_TXT_LEN) err("String size exceeded limit"); return;
 		if (lex_char(true)) return;
-		if (ustm_err) break;
+		if (ustm_err) err("Unterminated string"); break;
 	}
-	err("Unterminated string");
 }
 
 // whitespace characters are non-printable characters that define text layouts
