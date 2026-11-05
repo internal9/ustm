@@ -17,7 +17,7 @@ something* p_sym;	// TBD: global var over retrieving tk value & sym, etc lookups
 
 // NOTE: char type just uses native C type, no seperate typedef
 typedef int64_t ustm_int;
-typedef double ustm_num;
+typedef double  ustm_num;
 
 //typedef int file_pos;
 // static file_pos line = 1;
@@ -33,7 +33,7 @@ typedef double ustm_num;
 // TBD: Might need const table (including string) in byc => string interning too? ORRR 'pushstr' 'movestr'
 #define IDENT_HASH_SIZE 512
 
-static char idents[HASH_SIZE];
+static something idents[HASH_SIZE];
 static something syms[];
 
 // redundant for some cases?
@@ -48,6 +48,10 @@ static int txt_n = 0;
 #define nextc() (getc(src_fp))
 #define lastc() (ungetc(src_fp))
 
+#define TK_
+#define TK_KW_FIRST    
+#define TK_IDENT_FIRST = idk
+
 /* NOTES:
  * - single-char tks' values each == respective native char code
  * - unsure if even beyond 255, special things are reserved
@@ -60,39 +64,35 @@ enum {
 	TK_MUL_AS,
 	TK_DIV_AS,
 	TK_POW_AS,
+  TK_MOD_AS,
 
+  TK_L_OR,
+  TK_L_AND,
+
+  TK_NOT,
+  TK_NOT_AS,
+  TK_AND,
+  TK_AND_AS,
+  TK_XOR,
+  TK_XOR_AS,
+  TK_SH_L,
+  TK_SH_L_AS,
+  TK_SH_R,
+  TK_SH_R_AS
 };
 
-#define TK_IDENT_FIRST = idk
-
-
-
-
-static const char* reserved[] = {
-        "null", "true", "false", // keywords that are *literals*
+static const char* kws[] = {
+        "null", "true", "false",
         "bool", "char", "int", "num",
         "string", "array", "struct",
         "if", "elif", "else",
         "while", "for",
-        "switch", "jmp",
+        "cases", "jmp",
         "fn", "ref"
 };
 
-static inline void handle_tab_char(void)
-{
-        WARN_FMT("Tab character '\\t' width assumed to be %d spaces despite ambigious "
-                 "width and interpration, may lead to inaccurate lexing column numbers",
-                 TAB_WIDTH_GUESS);
-        src_i++;
-        src_column += TAB_WIDTH_GUESS;
-}
 
-static inline void handle_newline_char(void)
-{
-        src_i++;
-        src_line++;
-        src_column = 0;
-}
+
 
 // support octal integers?
 static void lex_bin_int(struct Tk *p_tk)
@@ -319,13 +319,15 @@ static inline void init_keywords_map(void)
 static inline void
 err_invalid_char(int c)
 {
-	if (isprint(c)) err("Invalid symbol '%c', character code of %d", c, (int) c);
+  if (isprint(c)) err("Invalid symbol '%c', character code of %d", c, (int) c);
 	else err("Invalid non-printable symbol, character code of %d", (int) c);
 }
 
 static void
 lex_init(FILE* src_fp)
 {
+
+  
   src_fp = src_fp;
   // keywords, etc
 }
