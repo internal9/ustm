@@ -8,7 +8,12 @@
 
 extern int ustm_err;  // FROM: main.c
 
-static FILE* src_fp;
+static FILE* src_fp;	// SET: 'lex_init()'
+
+// TBD
+int tk;	// TBD: global tk over return value?
+bool is_ident_duplicate = false;
+something* p_sym;	// TBD: global var over retrieving tk value & sym, etc lookups
 
 // NOTE: char type just uses native C type, no seperate typedef
 typedef int64_t ustm_int;
@@ -23,8 +28,8 @@ typedef double ustm_num;
 
 // NOTE: applies to kws & user-defined idents (var, func name, etc)
 #define MAX_IDENT_LEN 64
-#define MAX_STR_LEN 512
-#define MAX_IDENTS 256
+#define MAX_STR_LEN 	512
+#define MAX_IDENTS 		256
 #define TK_IDENT_START = index of last reserved
 
 static char idents[MAX_IDENTS];
@@ -37,6 +42,10 @@ static ustm_int tk_val_int;  // NOTE: Holds character values too
 static ustm_num tk_val_num;
 
 static int txt_n = 0;
+
+// TBD: current c variable
+#define nextc() (getc(src_fp))
+#define lastc() (ungetc(src_fp))
 
 /* NOTES:
  * - single-char tks' values each == respective native char code
@@ -52,6 +61,7 @@ enum {
 	TK_POW_AS,
 
 };
+
 
 
 
@@ -207,10 +217,10 @@ try_lex_num:
 
 // Static hashing
 #define HASH_LOAD_FACTOR 75
+#define HASH_SIZE ((MAX_IDENTS * 100) / HASH_LOAD_FACTOR)
 // FNV Constants for 32-Bit
 #define HASH_BASIS (uint32_t) 0x811c9dc5
 #define HASH_PRIME (uint32_t) 0x01000193
-#define HASH_SIZE (() / HASH_LOAD_FACTOR)
 
 static void
 lex_ident(void)
@@ -218,12 +228,11 @@ lex_ident(void)
 	uint32_t hash = HASH_BASIS;
 	for (int c; isalnum(c = nextc()); (hash ^= c, hash *= HASH_PRIME));
 	hash &= (HASH_SIZE - 1);
+	for (int i = 0; i < HASH_SIZE; i++) {
+		(hash + i) & (HASH_SIZE - 1)
+	}
 	// TBD: copy chars into txt bufs
 }
-
-// TBD: current c variable
-#define nextc() (getc(src_fp))
-#define lastc() (ungetc(src_fp))
 
 static inline char
 esc_seq(c2)
