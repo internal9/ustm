@@ -12,7 +12,7 @@
 									// NOTE: 'abort()' bypasses and goes straight to 'exit(1)'
 int ustm_err = 0;	// USED BY: ustm.c, lex.c, codegen.c
 
-#define err(msg) (fprintf(stderr, msg "\n"), (ustm_err = 1))
+#define err(msg)   (fprintf(stderr, msg "\n"), (ustm_err = 1))
 #define abort(msg) (fprintf(stderr, msg "\n"), exit(1))
 
 static inline void
