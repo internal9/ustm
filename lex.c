@@ -50,9 +50,9 @@ static int txt_n = 0;
 
 
 #define TK_CMPLX_OP_FIRST (UCHAR_MAX + 1)
-#define TK_KW_FIRST       (TK_SH_R_AS + 1)
+#define TK_KW_FIRST       TK_NULL
 // NOTE: 'UD' => 'user-defined'
-#define TK_UD_ID_FIRST    (sizeof(kws) / sizeof(*kws) + 1)
+#define TK_UD_ID_FIRST    (TK_REF + 1)
 
 /* NOTES:
  * - single-char tks' values each == respective native char code
@@ -61,7 +61,7 @@ static int txt_n = 0;
 
 // single-char tks <= 255 (UCHAR_MAX)
 enum {
-  TK_INC = TK_CMPLX_OP_FIRST
+  TK_INC     = TK_CMPLX_OP_FIRST
   TK_DEC,
   TK_ADD_AS,
   TK_SUB_AS,
@@ -82,12 +82,32 @@ enum {
   TK_SH_L,
   TK_SH_L_AS,
   TK_SH_R,
-  TK_SH_R_AS
+  TK_SH_R_AS,
+
+  TK_NULL     = TK_KW_FIRST,
+  TK_TRUE,
+  TK_FALSE,
+  TK_BOOL,
+  TK_CHAR,
+  TK_INT,
+  TK_NUM,
+  TK_STRING,
+  TK_ARRAY,
+  TK_STRUCT,
+  TK_IF,
+  TK_ELIF,
+  TK_ELSE,
+  TK_WHILE,
+  TK_FOR,
+  TK_CASES,
+  TK_JMP,
+  TK_FN,
+  TK_REF
 };
 
+// NOTE: In same order as enums
 static const char* kws[] = {
-  "null",  // == 'TK_KW_FIRST'
-  "true", "false",
+  "null", "true", "false",
   "bool", "char", "int", "num",
   "string", "array", "struct",
   "if", "elif", "else",
