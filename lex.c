@@ -10,6 +10,10 @@ extern int ustm_err;  // FROM: main.c
 
 static FILE* src_fp;	// SET: 'lex_init()'
 
+// TBD: current c variable
+#define nextc() (getc(src_fp))
+#define lastc() (ungetc(src_fp))
+
 // TBD
 int tk;	// TBD: global tk over return value?
 bool is_ident_duplicate = false;
@@ -44,14 +48,11 @@ static ustm_num tk_val_num;
 
 static int txt_n = 0;
 
-// TBD: current c variable
-#define nextc() (getc(src_fp))
-#define lastc() (ungetc(src_fp))
 
 #define TK_CMPLX_OP_FIRST (UCHAR_MAX + 1)
 #define TK_KW_FIRST       (TK_SH_R_AS + 1)
 // NOTE: 'UD' => 'user-defined'
-#define TK_UD_ID_FIRST    (sizeof(kws) / sizeof(*kws))
+#define TK_UD_ID_FIRST    (sizeof(kws) / sizeof(*kws) + 1)
 
 /* NOTES:
  * - single-char tks' values each == respective native char code
@@ -60,13 +61,13 @@ static int txt_n = 0;
 
 // single-char tks <= 255 (UCHAR_MAX)
 enum {
-	TK_INC = TK_CMPLX_OP_FIRST
-	TK_DEC,
-	TK_ADD_AS,
-	TK_SUB_AS,
-	TK_MUL_AS,
-	TK_DIV_AS,
-	TK_POW_AS,
+  TK_INC = TK_CMPLX_OP_FIRST
+  TK_DEC,
+  TK_ADD_AS,
+  TK_SUB_AS,
+  TK_MUL_AS,
+  TK_DIV_AS,
+  TK_POW_AS,
   TK_MOD_AS,
 
   TK_L_OR,
@@ -85,13 +86,14 @@ enum {
 };
 
 static const char* kws[] = {
-        "null", "true", "false",
-        "bool", "char", "int", "num",
-        "string", "array", "struct",
-        "if", "elif", "else",
-        "while", "for",
-        "cases", "jmp",
-        "fn", "ref"
+  "null",  // == 'TK_KW_FIRST'
+  "true", "false",
+  "bool", "char", "int", "num",
+  "string", "array", "struct",
+  "if", "elif", "else",
+  "while", "for",
+  "cases", "jmp",
+  "fn", "ref"
 };
 
 
@@ -112,11 +114,11 @@ static void lex_bin_int(struct Tk *p_tk)
                 }
 
                 if (isdigit(c))
-                        LEX_ERR_FMT("Expected binary digits after binary"
+                        err("Expected binary digits after binary"
                                     " integer literal prefix '0b',"
                                     " instead got decimal digit '%c'", c);
                 else if (isxdigit(c))
-                        LEX_ERR_FMT("Expected binary digits after binary"
+                        err("Expected binary digits after binary"
                                     " integer literal prefix '0b',"
                                     " instead got hexadecimal digit '%c'", c);
                 // non-digit character case
@@ -226,13 +228,13 @@ try_lex_num:
 #define HASH_PRIME (uint32_t) 0x01000193
 
 static void
-lex_ident(void)
+lex_id(void)
 {
 	uint32_t hash = HASH_BASIS;
 	for (int c; isalnum(c = nextc()); (hash ^= c, hash *= HASH_PRIME));
 	hash &= (HASH_SIZE - 1);
 	for (int i = 0; i < HASH_SIZE; i++) {
-		idents[(hash + i) & (HASH_SIZE - 1)];
+		ids[(hash + i) & (HASH_SIZE - 1)];
 	}
 	// TBD: copy chars into txt bufs
 }
@@ -398,7 +400,7 @@ lex_next(void)
 						if (isdigit(nextc()))
 										lex_num();
 						else return '.';
-		case '_': return lex_ident(p_tk);
+		case '_': return lex_id(p_tk);
 		default:
 						if (isdigit(c)) 		 			return lex_dec_int_or_num(p_tk);
 						else if (isalpha(c))		  return lex_keyword_or_identifier(p_tk);
