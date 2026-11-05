@@ -27,13 +27,13 @@ typedef double  ustm_num;
 #define TAB_WIDTH_GUESS 8
 
 // NOTE: applies to kws & user-defined idents (var, func name, etc)
-#define MAX_IDENT_LEN   64
-#define MAX_STR_LEN     512
+#define MAX_ID_LEN  64
+#define MAX_STR_LEN 512
 // NOTE: Static hashing
 // TBD: Might need const table (including string) in byc => string interning too? ORRR 'pushstr' 'movestr'
-#define IDENT_HASH_SIZE 512
+#define ID_HASH_SIZE 512
 
-static something idents[HASH_SIZE];
+static something ids[HASH_SIZE];
 static something syms[];
 
 // redundant for some cases?
@@ -48,16 +48,19 @@ static int txt_n = 0;
 #define nextc() (getc(src_fp))
 #define lastc() (ungetc(src_fp))
 
-#define TK_
-#define TK_KW_FIRST    
-#define TK_IDENT_FIRST = idk
+#define TK_CMPLX_OP_FIRST (UCHAR_MAX + 1)
+#define TK_KW_FIRST       (TK_SH_R_AS + 1)
+// NOTE: 'UD' => 'user-defined'
+#define TK_UD_ID_FIRST    (sizeof(kws) / sizeof(*kws))
 
 /* NOTES:
  * - single-char tks' values each == respective native char code
  * - unsure if even beyond 255, special things are reserved
  */
+
+// single-char tks <= 255 (UCHAR_MAX)
 enum {
-	TK_INC = (UCHAR_MAX + 1)
+	TK_INC = TK_CMPLX_OP_FIRST
 	TK_DEC,
 	TK_ADD_AS,
 	TK_SUB_AS,
