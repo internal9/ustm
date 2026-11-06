@@ -39,7 +39,7 @@ bitwise (compound): '~=', '|=', '&=', '^^=', '<<=', '>>='
 scalar: [modifier(s)] [type] name
         [modifier(s)] [type] name = expr
         
-aggregate:  [modifier(s)] [type][len|*|] name
+aggregate:  [modifier(s)] [type][len?*?] name
  [modifier(s)] [type][] name
 
 
