@@ -10,18 +10,29 @@
 
 
 ## keywords
-literals:   "null", "true", "false"
+literals:   'null', 'true', 'false'
 
-types:      "bool", "char", "int", "num", "string", "array", "struct"
+types:      'bool', 'char', 'int', 'num', 'string', 'array', 'struct'
 
-statements: "if", "elif", "else", "while", "for", "cases", "jmp", "ret"
+statements: 'if', 'elif', 'else', 'while', 'for', 'cases', 'jmp', 'ret'
 
-modifiers:  "ref", "const"
+modifiers:  'ref', 'const'
 
-misc:       "func"
+misc:       'func'
 
 ## operators
-compound: 
+arithmetic: '++', '--', '+', '-', '*', '/', '^', '%'
+
+arithmetic (compound): '+=' , '-=', '*=', '/=', '^=', '%='
+
+
+logical: '==', '!=', '!', '||', '&&', '?:', '<', '>', '<=, '>='
+
+
+
+bitwise: '~', '|', '&', '^^', '<<', '>>'
+
+bitwise (compound): '~=', '|=', '&=', '^^=', '<<=', '>>='
 
 ## syntax
 
