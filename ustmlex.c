@@ -96,6 +96,8 @@ enum {
   TK_NULL     = TK_KW_FIRST,
   TK_TRUE,
   TK_FALSE,
+  TK_REF,
+  TK_CONST,
   TK_BOOL,
   TK_CHAR,
   TK_INT,
@@ -110,22 +112,21 @@ enum {
   TK_FOR,
   TK_CASES,
   TK_JMP,
-  TK_FN,
-  TK_REF
-  
+  TK_FN
   // NOTE: 'UD' => 'user-defined'
-#define TK_UD_ID_FIRST    (TK_REF + 1)
+#define TK_UD_ID_FIRST    (TK_FN + 1)
 };
 
 // NOTE: In same order as enums
 static const char* kws[] = {
   "null", "true", "false",
+  "ref", "const",
   "bool", "char", "int", "num",
   "string", "array", "struct",
   "if", "elif", "else",
   "while", "for",
   "cases", "jmp",
-  "fn", "ref"
+  "fn"
 };
 
 static int tk_id = TK_UD_ID_FIRST;
