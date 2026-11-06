@@ -1,10 +1,16 @@
 /* NOTES:
+ * fix 'ungetc' as 1st arg requires int
  * - read all of file into memory then byte by byte faster than byte per disk read?
  * - chunking necessary for embedded only?
  * - fixed-size 32-bit instrs => byc constant table for strings & etc w/ large bytes # => 
  */
 
+#include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <ctype.h>
+#include <limits.h>
 
 extern int ustm_err;  // FROM: main.c
 
@@ -17,7 +23,7 @@ static FILE* src_fp;	// SET: 'lex_init()'
 // TBD
 int tk;	// TBD: global tk over return value?
 bool is_ident_duplicate = false;
-something* p_sym;	// TBD: global var over retrieving tk value & sym, etc lookups
+// something* p_sym;	// TBD: global var over retrieving tk value & sym, etc lookups
 
 // NOTE: char type just uses native C type, no seperate typedef
 typedef int64_t ustm_int;
@@ -37,14 +43,12 @@ typedef double  ustm_num;
 // TBD: Might need const table (including string) in byc => string interning too? ORRR 'pushstr' 'movestr'
 #define ID_HASH_SIZE 512
 
-static int tk_id = TK_ID_FIRST;
-
-static struct {
+static struct Id {
   char name[MAX_ID_LEN];
   int len;
   int tk;
 } ids[ID_HASH_SIZE] = {0};
-static something syms[];
+static double syms[];
 
 // redundant for some cases?
 static char tk_val_txt[MAX_STR_LEN];  // TBD: copy char (& process escape seqs) per fgetc?
@@ -55,13 +59,6 @@ static ustm_num tk_val_num;
 static int txt_n = 0;
 
 
-#define TK_CMPLX_OP_FIRST (UCHAR_MAX + 1)
-#define TK_KW_FIRST       TK_NULL
-// NOTE: 'UD' => 'user-defined'
-#define TK_UD_ID_FIRST    (TK_REF + 1)
-
-static int tk_id = TK_ID_FIRST;
-
 /* NOTES:
  * - single-char tks' values each == respective native char code
  * - unsure if even beyond 255, special things are reserved
@@ -69,7 +66,9 @@ static int tk_id = TK_ID_FIRST;
 
 // single-char tks <= 255 (UCHAR_MAX)
 enum {
-  TK_INC     = TK_CMPLX_OP_FIRST
+#define TK_CMPLX_OP_FIRST (UCHAR_MAX + 1)
+
+  TK_INC     = TK_CMPLX_OP_FIRST,
   TK_DEC,
   TK_ADD_AS,
   TK_SUB_AS,
@@ -91,6 +90,8 @@ enum {
   TK_SH_L_AS,
   TK_SH_R,
   TK_SH_R_AS,
+  
+#define TK_KW_FIRST (TK_SH_R_AS + 1)
 
   TK_NULL     = TK_KW_FIRST,
   TK_TRUE,
@@ -111,6 +112,9 @@ enum {
   TK_JMP,
   TK_FN,
   TK_REF
+  
+  // NOTE: 'UD' => 'user-defined'
+#define TK_UD_ID_FIRST    (TK_REF + 1)
 };
 
 // NOTE: In same order as enums
@@ -124,10 +128,14 @@ static const char* kws[] = {
   "fn", "ref"
 };
 
+static int tk_id = TK_UD_ID_FIRST;
+
+
 
 
 
 // support octal integers?
+/*
 static void lex_bin_int(struct Tk *p_tk)
 {
         p_tk->type_group = G_LITERAL;
@@ -190,12 +198,14 @@ static void lex_hex_int(struct Tk *p_tk)
                 LEX_ERR("Hexadecimal integer literal exceeds 8 digits, above 64-bit range");
 }
 
-/*
+
   IF 'non-fractional_int' is true (1000% sure there is no *decimal point*,
   resulting from attempting to lex an int that would've *overflowed*)
 
   CHECK for *suffix* 'f', otherwise error, assuming an attempt at lexing a massive 'int'
 */
+
+/*
 static void
 lex_num(void)
 {
@@ -218,9 +228,10 @@ lex_num(void)
         if (errno == ERANGE)
                 LEX_ERR("floating-point number overflow");
         INCPOS();
-}
+} */
 
 // probably need a more robust integer lexer
+/*
 static int
 lex_dec_int_or_num(void)
 {
@@ -250,6 +261,7 @@ try_lex_num:
         SET_POS(int_src_i_start);
         lex_num(p_tk);
 }
+*/
 
 // FNV Constants for 32-Bit
 #define HASH_BASIS (uint32_t) 0x811c9dc5
@@ -274,19 +286,19 @@ lex_id(void)
   
 	uint32_t hash = HASH_BASIS;
 	for (int c; c = nextc(), IS_ID_C(c); FNV1A(hash, c), tk_val_txt[txt_n++] = c);
-	hash &= (HASH_SIZE - 1);
-	for (int i = 0; i < HASH_SIZE; i++) {
-    bucket = ids[((int) hash + i) & (HASH_SIZE - 1)];
-		if (bucket.len == 0) {
-      memcpy(&bucket.name, tk_val_txt, txt_n);
-      bucket.len = txt_n;
+	hash &= (ID_HASH_SIZE - 1);
+	for (int i = 0; i < ID_HASH_SIZE; i++) {
+    struct Id id = ids[((int) hash + i) & (ID_HASH_SIZE - 1)];
+		if (id.len == 0) {
+      memcpy(&id.name, tk_val_txt, txt_n);
+      id.len = txt_n;
     }
 	}
 	// TBD: copy chars into txt bufs
 }
 
 static inline char
-esc_seq(c2)
+esc_seq(int c2)
 {
 	switch(c2) {
 	case '0':  return '\0';
@@ -306,7 +318,7 @@ lex_char(bool is_tk_lit_str)
 	int c = nextc();
 	switch (c) {
 	case '\'':
-		err("Char cannot be empty"); return;
+		err("Char cannot be empty"); return 0;
 	case '\\': c = esc_seq(nextc());
 	case '"': if (is_tk_lit_str) return false;	// NOTE: true: non-terminated
 	case '_': case '\t': 							break;
@@ -324,9 +336,9 @@ static void
 lex_str(void)
 {
 	for (;;) {
-		if (txt_n > MAX_TXT_LEN) err("String size exceeded limit"); return;
+		if (txt_n > MAX_STR_LEN) {err("String size exceeded limit"); return;}
 		if (lex_char(true)) return;
-		if (ustm_err) err("Unterminated string"); break;
+		if (ustm_err) {err("Unterminated string"); break;}
 	}
 }
 
@@ -334,7 +346,7 @@ lex_str(void)
 static inline void
 skip_whitespace(void)
 {
-	while(isspace(int c = nextc()));
+	while (isspace(nextc()));
 	lastc();
 }
 
@@ -390,7 +402,7 @@ static const int c_cases2[] = {
 };
 
 static const int c_cases3[] = {
-	['+'] = (TK_INC << 4) | TK_ADD_AS,
+  ['+'] = (TK_INC << 4) | TK_ADD_AS,
 	['-'] = (TK_DEC << 4) | TK_SUB_AS,
 	['&'] = (TK_L_AND << 4) | TK_AND_AS,
 	['|'] = (TK_L_OR << 4) | TK_OR_AS,
@@ -407,7 +419,7 @@ static int
 lex_next(void)
 {
 	for (int c; ; c = nextc()) {
-		switch (c) {
+	  switch (c) {
 		case ' ': case '\n': case '\r': case '\t': case '\v': case '\f':
 			skip_whitespace(); break;
 		case EOF:
