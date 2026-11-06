@@ -1,13 +1,15 @@
 # ustm
 
-## Keywords
-Literals: "null", "true", "false"
-Types:    "bool", "char", "int", "num", "string", "array", "struct",
-### Statements:
+## keywords
+literals: "null", "true", "false"
+
+
+types:    "bool", "char", "int", "num", "string", "array", "struct",
+### statements:
 "if", "elif", "else", "while", "for", "cases", "jmp",
-### Modifiers: 
+### modifiers: 
 "ref", "const"
-### Misc:
+### misc:
 "func"
 
 
