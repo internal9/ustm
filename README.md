@@ -2,6 +2,9 @@
 ## tbd
 - kws: 'array', 'string, 'iter', 'dynamic'
 - stuff for binary data idk
+- jagged array how handle 'char [FIXED_N][*] strs  strs[2] = "r2substr"' where '*' in '[*]' is dynamic
+  no need for kw 'dynamic' then? also '[]' == length determined at initializion
+  
 
 ## notes
 
@@ -16,6 +19,11 @@ statements: "if", "elif", "else", "while", "for", "cases", "jmp"
 modifiers:  "ref", "const"
 
 misc:       "func"
+
+## operators
+
+
+## syntax
 
 ## examples
 ```
@@ -54,18 +62,24 @@ fn int non_redundant_optimized_low_case_check_function_Example(char c)
 fn int lowercase_split(char[] str)
 {
   const int hope_str_n_dont_Exceed_this_amount = 5
+  const int
   char [hope_str_n_dont_Exceed_this_amount] strs = {"Hi"}
-  __BUILT_IN_INLINE_SIMD_FORCE_ASM_X64_PRINT(strs[1])
+  __BUILT_IN_INLINE_SIMD_FORCE_ASM_X64_BUZZWORDS_PRINT(strs[1])
 
   for (int i=0, char c=str[0]; c != '\0'; c=str[i++]) // => 'iter (str) {...}'
   {
     int i_start = i
     if (non_redundant_optimized_low_case_check_function_Example(c))
     {
-      
+      while (i_start <= i)
+      {
+        
+      }
     }
   }
 }
+
+lower
 ```
 
 ```
