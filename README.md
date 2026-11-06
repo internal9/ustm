@@ -10,6 +10,7 @@ statements: "if", "elif", "else", "while", "for", "cases", "jmp"
 modifiers:  "ref", "const"
 
 misc:       "func"
+This is an example of $\color{red}{\text{red text}}$ inside a sentence.
 
 ## examples
 ```
