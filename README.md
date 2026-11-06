@@ -11,4 +11,13 @@ modifiers:  "ref", "const"
 
 misc:       "func"
 
+## examples
+```
+int fn too() {
 
+}
+```
+
+```
+int array[25][12] jar
+```
