@@ -4,7 +4,7 @@
 - stuff for binary data idk
 - jagged array how handle 'char [FIXED_N][*] strs  strs[2] = "r2substr"' where '*' in '[*]' is dynamic
   no need for kw 'dynamic' then? also '[]' == length determined at initializion
-  
+- >1 # fn return values
 
 ## notes
 
