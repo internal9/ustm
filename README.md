@@ -13,6 +13,8 @@ misc:       "func"
 
 ## examples
 ```
+This is an example of $\color{red}{\text{red text}}$ inside a sentence.
+
 $\color{purple}{\text{int}}$ fn too() {
 
 }
