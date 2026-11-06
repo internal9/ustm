@@ -1,7 +1,7 @@
 # ustm
-t
 
-Keywords:
+# Keywords:
+  Literals:
   "null", "true", "false",
   "bool", "char", "int", "num",
   "string", "array", "struct",
