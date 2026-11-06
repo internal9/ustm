@@ -14,14 +14,14 @@ literals:   "null", "true", "false"
 
 types:      "bool", "char", "int", "num", "string", "array", "struct"
 
-statements: "if", "elif", "else", "while", "for", "cases", "jmp"
+statements: "if", "elif", "else", "while", "for", "cases", "jmp", "ret"
 
 modifiers:  "ref", "const"
 
 misc:       "func"
 
 ## operators
-
+compound: 
 
 ## syntax
 
@@ -59,27 +59,32 @@ fn int non_redundant_optimized_low_case_check_function_Example(char c)
 }
 
 // NOTE: hope that 'str' contains alphabetic chars only & hope for best
-fn int lowercase_split(char[] str)
+fn int lowercase_split_No_work(char[] str)
 {
   const int hope_str_n_dont_Exceed_this_amount = 5
-  const int
-  char [hope_str_n_dont_Exceed_this_amount] strs = {"Hi"}
+  const int p_ = 256
+  char [hope_str_n_dont_Exceed_this_amount][p_] strs = {"Hi"}
   __BUILT_IN_INLINE_SIMD_FORCE_ASM_X64_BUZZWORDS_PRINT(strs[1])
 
+  
+  int ii = 0, i_start = 0
   for (int i=0, char c=str[0]; c != '\0'; c=str[i++]) // => 'iter (str) {...}'
   {
-    int i_start = i
     if (non_redundant_optimized_low_case_check_function_Example(c))
     {
-      while (i_start <= i)
+      for (int ii = 0; ii <= (i - i_start); ii++)
       {
-        
+        strs[ii] = c
+        ii++
       }
+      i_start = i
     }
   }
+
+  ret 5000;
 }
 
-lower
+lowercase_split_No_work(test_buf)
 ```
 
 ```
