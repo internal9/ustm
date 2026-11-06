@@ -35,6 +35,13 @@ bitwise: '~', '|', '&', '^^', '<<', '>>'
 bitwise (compound): '~=', '|=', '&=', '^^=', '<<=', '>>='
 
 ## syntax
+### declarations
+scalar: [modifier(s)] [type] name
+        [modifier(s)] [type] name = expr
+        
+aggregate:  [modifier(s)] [type][len|*|] name
+ [modifier(s)] [type][] name
+
 
 ## examples
 ```
