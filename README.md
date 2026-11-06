@@ -13,7 +13,7 @@ misc:       "func"
 
 ## examples
 ```
-int fn too() {
+$\color{purple}{\text{int}}$ fn too() {
 
 }
 ```
