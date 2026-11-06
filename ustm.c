@@ -25,7 +25,7 @@ check_suffix(const char* str, const char* suffix)
 static FILE*
 open_src(const char *name)
 {
-	if (!check_suffix(name)) abort("Source name requires suffix '.ustm' with preceding text");
+	if (!check_suffix(name, ".ustm")) abort("Source name requires suffix '.ustm' with preceding text");
 	FILE *src_fp;
 	if (!(src_fp = fopen(name, "r"))) abort("Unreadable/non-existent source file");
 	return src_fp;
@@ -34,7 +34,7 @@ open_src(const char *name)
 static FILE*
 open_out(const char *name)
 {
-	if (!check_suffix(name)) abort("Outfile name requires suffix '.ustmbyc' with preceding text");
+	if (!check_suffix(name, ".ustmbyc")) abort("Outfile name requires suffix '.ustmbyc' with preceding text");
 	FILE *out_fp;
 	if (!(out_fp = fopen(name, "w"))) abort("Failed to open outfile");
 	return out_fp;
