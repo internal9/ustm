@@ -10,6 +10,11 @@
 
 
 
+static void
+gen_block(void)
+{
+
+}
 
 static void
 gen_code(FILE* src_fp, FILE* out_fp)
