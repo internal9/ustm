@@ -1,5 +1,5 @@
 /* NOTES:
- * 
+ * - bytecode file format especially with constants
  *
  */
 
@@ -15,5 +15,7 @@ static void
 gen_code(FILE* src_fp, FILE* out_fp)
 {
   lex_init(src_fp);
-  
+  gen_headers();
+  gen_const_table();
+  gen_block();
 }
