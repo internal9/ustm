@@ -5,6 +5,7 @@
  * - fixed-size 32-bit instrs => byc constant table for strings & etc w/ large bytes # => 
  */
 
+#include "ustm.c"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -18,8 +19,9 @@ extern int ustm_err;  // FROM: main.c
 static FILE* src_fp;  // SET: 'lex_init()'
 
 // TBD: current c variable
-#define nextc() (getc(src_fp))
-#define lastc() (ungetc(src_fp))
+static int lazy_cur_c_;
+#define nextc() (lazy_cur_c_ = getc(src_fp))
+#define lastc() (ungetc(lazy_cur_c_, src_fp))
 
 // TBD
 int tk; // TBD: global tk over return value?
@@ -78,11 +80,16 @@ enum {
   TK_POW_AS,
   TK_MOD_AS,
 
+  TK_EQ,
+  TK_LEQ,
+  TK_GEQ,
   TK_L_OR,
   TK_L_AND,
 
   TK_NOT,
   TK_NOT_AS,
+  TK_OR,
+  TK_OR_AS,
   TK_AND,
   TK_AND_AS,
   TK_XOR,
@@ -115,6 +122,7 @@ enum {
   TK_REF
   
   // NOTE: 'UD' => 'user-defined'
+  // NOTE: Will be used for string-interning (unles string len fitsinstr)
 #define TK_UD_ID_FIRST (TK_REF + 1)
 };
 
@@ -358,47 +366,35 @@ skip_comment(bool is_multi_line)
   int c;
   if (is_multi_line)
     while (1) {
-      if ((c = nextc()) == EOF) {err("Unterminated block comment"); return;
+      if ((c = nextc()) == EOF) {err("Unterminated block comment"); return;}
     else if (c == '*') {
         if ((c = nextc()) == EOF) {err("Unterminated block comment"); return;}
         if (c == '/') break;
       }
     }
-  else do if ((c = nextc()) == EOF) {lastc(); break;}; while (c != '\n');
-}
-
-// TBD stuff
-static inline void init_keywords_map(void)
-{
-        hashmap_init(&keywords_hashmap,
-                     HASHMAP_INIT_SIZE + HASHMAP_INIT_SIZE / 4);
-        for (int i = 0; i < (int) (sizeof keywords / sizeof *keywords); i++)
-                // Keyword enumlex_chars are in order startiing from 'TK_KW_NULL'
-                hashmap_put_int(&keywords_hashmap, keywords[i], strlen(keywords[i]),
-                                (int) TK_KW_NULL + i);
-        
+  else do if ((c = nextc()) == EOF) {lastc(); break;} while (c != '\n');
 }
 
 static inline void
 err_invalid_char(int c)
 {
-  if (isprint(c)) err("Invalid symbol '%c', character code of %d", c, (int) c);
-  else err("Invalid non-printable symbol, character code of %d", (int) c);
+  if (isprint(c)) err_fmt("Invalid symbol '%c', character code of %d", c, (int) c);
+  else err_fmt("Invalid non-printable symbol, character code of %d", (int) c);
 }
 
 static void
-lex_init(FILE* src_fp)
+lex_init(FILE* src_fp_arg)
 {
 
   
-  src_fp = src_fp;
+  src_fp = src_fp_arg;
   // keywords, etc
 }
 
 static const int c_cases2[] = {
   ['!'] = TK_NOT_AS,
   ['='] = TK_EQ,
-  ['/'] = TK_DEV_AS,
+  ['/'] = TK_DIV_AS,
   ['*'] = TK_MUL_AS,
   ['%'] = TK_MOD_AS
 };
@@ -413,7 +409,7 @@ static const int c_cases3[] = {
 static const int c2_cases4[] = {
   ['^'] = (TK_XOR << 8) | (TK_XOR_AS << 4) | (TK_POW_AS),
   ['<'] = (TK_SH_L << 8) | (TK_SH_L_AS << 4) | (TK_LEQ),
-  ['>'] = (TK_SH_R << 8) | (TK_SH_R_AS << 4) | (TK_REQ),
+  ['>'] = (TK_SH_R << 8) | (TK_SH_R_AS << 4) | (TK_GEQ),
 };
 
 // NOTES: line & column are not recorded only at error
@@ -428,14 +424,14 @@ lex_next(void)
       if (ferror(src_fp)) err("Lexing source read error");
       return EOF;
     case '/':
-      c = nextc()
+      c = nextc();
       if (c == '/' || c == '*') skip_comment(c == '*');
       else c = lastc();
     case '!': case '=': case '*': case '%':
       return ( (nextc() == '=') ? (c_cases2[c]) : (c) );
     case '+': case '-': case '&': case '|':
       if (nextc() == c) return c_cases3[c] & 0xF0;
-      return (nextc() == '=') ? (c_cases4[c] & 0x0F) : (c);
+      return (nextc() == '=') ? (c_cases3[c] & 0x0F) : (c);
     case '<': case '>': case '^':
       if (nextc() == '=') return c2_cases4[c] & 0x00F;
       if (currentc() == c)   return (nextc() == '=') ? (c2_cases4[c] & 0x0F0) : (c2_cases4[c] & 0xF00);
@@ -448,8 +444,9 @@ lex_next(void)
     case '"':  lex_str();       return TK_LIT_STR;
     case '0':
             c = nextc();
-            if (c == 'x')      lex_hex_int(p_tk); return TK_LIT_INT;
-            else if (c == 'b') lex_bin_int(p_tk); return TK_LIT_INT;
+            if (c == 'x')      lex_hex_int();
+            else if (c == 'b') lex_bin_int();
+            return TK_LIT_INT;
     case '1': case '2': case '3': case '4': case '5':
     case '6': case '7': case '8': case '9':
             return lex_dec_int_or_num(p_tk);
@@ -458,11 +455,11 @@ lex_next(void)
             if (isdigit(nextc()))
                     lex_num();
             else return '.';
-    case '_': return lex_id(p_tk);
+    case '_': return lex_id();
     default:
             if (isdigit(c))           return lex_dec_int_or_num(p_tk);
             else if (isalpha(c))      return lex_keyword_or_identifier(p_tk);
-            else err_invalid_char(c); return EOF;
+            else {err_invalid_char(c); return EOF;}
     }
   }
 }

@@ -8,7 +8,7 @@
  * - write to output file and pass that file in or a buf
  */
 
-
+#include <stdio.h>
 
 static void
 gen_block(void)
