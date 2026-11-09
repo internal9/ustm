@@ -1,6 +1,6 @@
 # temp
 CC = gcc
-CCFLAGS = -std=c99 -pedantic -O2 -Wall -Wformat=2 -Wconversion -Wimplicit-fallthrough \
+CCFLAGS = -std=c99 -pedantic -Wall -Wformat=2 -Wconversion -Wimplicit-fallthrough \
 -Werror=format-security \
 -Wfloat-equal -Wimplicit-int \
 -Wundef -Wshadow -Wpointer-arith \
@@ -18,4 +18,4 @@ CCFLAGS = -std=c99 -pedantic -O2 -Wall -Wformat=2 -Wconversion -Wimplicit-fallth
 -fno-diagnostics-color -Wno-switch -Wno-switch-enum
 
 ustm: ustm.c ustmlex.c ustmgen.c
-        $(CC) $(CCFLAGS) -o ustm ustm.c ustmlex.c ustmgen.c
+	$(CC) $(CCFLAGS) -o ustm ustm.c ustmlex.c ustmgen.c
