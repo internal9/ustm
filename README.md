@@ -1,5 +1,6 @@
 # ustm
 ## tbd
+- vm instr size
 - kws: 'array', 'string, 'iter', 'dynamic'
 - stuff for binary data idk
 - jagged array how handle 'char [FIXED_N][*] strs  strs[2] = "r2substr"' where '*' in '[*]' is dynamic
