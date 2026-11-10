@@ -47,6 +47,8 @@ main(int argc, const char* argv[argc])
   FILE *src_fp = open_src(src_name);
   FILE *out_fp = open_out(out_name);
   // vm_run(src_fp, out_fp);
+  gen_code(src_fp, out_fp);
+  vm_run(out_fp);
   fclose(src_fp);
   fclose(out_fp);
   return ustm_err;

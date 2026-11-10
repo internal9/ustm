@@ -6,12 +6,11 @@
  * - fixed-size 32-bit instrs => byc constant table for strings & etc w/ large bytes # => 
  */
 
-#include "ustm.c"
+#include "ustm.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <ctype.h>
 #include <limits.h>
 #include <stdbool.h>
 
@@ -63,76 +62,6 @@ static ustm_int tk_val_int;  // NOTE: Holds character values too
 static ustm_num tk_val_num;
 
 static int txt_n = 0;
-
-
-/* NOTES:
- * - single-char tks' values each == respective native char code
- * - unsure if even beyond 255, special things are reserved
- */
-
-// single-char tks <= 255 (UCHAR_MAX)
-enum {
-#define TK_CMPLX_FIRST (UCHAR_MAX + 1)
-
-  TK_INC = TK_CMPLX_FIRST,
-  TK_DEC,
-  TK_ADD_AS,
-  TK_SUB_AS,
-  TK_MUL_AS,
-  TK_DIV_AS,
-  TK_POW_AS,
-  TK_MOD_AS,
-
-  TK_EQ,
-  TK_LEQ,
-  TK_GEQ,
-  TK_L_OR,
-  TK_L_AND,
-
-  TK_NOT,
-  TK_NOT_AS,
-  TK_OR,
-  TK_OR_AS,
-  TK_AND,
-  TK_AND_AS,
-  TK_XOR,
-  TK_XOR_AS,
-  TK_SH_L,
-  TK_SH_L_AS,
-  TK_SH_R,
-  TK_SH_R_AS,
-  
-  TK_LIT_CHAR,
-  TK_LIT_STR,
-  TK_LIT_INT,
-  TK_LIT_NUM,
-  
-#define TK_KW_FIRST (TK_LIT_NUM + 1)
-
-  TK_NULL = TK_KW_FIRST,
-  TK_TRUE,
-  TK_FALSE,
-  TK_BOOL,
-  TK_CHAR,
-  TK_INT,
-  TK_NUM,
-  TK_STRING,
-  TK_ARRAY,
-  TK_STRUCT,
-  TK_IF,
-  TK_ELIF,
-  TK_ELSE,
-  TK_WHILE,
-  TK_FOR,
-  TK_CASES,
-  TK_JMP,
-  TK_FN,
-  TK_REF
-  
-  // NOTE: 'UD' => 'user-defined'
-  // NOTE: Will be used for string-interning (unles string len fitsinstr)
-#define TK_UD_ID_FIRST (TK_REF + 1)
-};
 
 // NOTE: In same order as enums
 static const char* kws[] = {
@@ -205,48 +134,44 @@ lex_num(void)
   // IF success 'src_txt' is advanced beyond the lexed num
   errno = 0;
 
-  bool no_decimal = false;
+  bool has_decimal = false, has_suffix = false;
   char buf[64];
   for (int i = 0, c; c = nextc(), i < 64; i++) {
     if (c == '.') {
-      if (no_decimal) {err("Duplicate decimal '.'"); return;}
-      no_decimal = true;
+      if (has_decimal) {err("Duplicate decimal '.'"); return;}
+      has_decimal = true;
+    }
+    else if (c == 'f' || c == 'F') {
+      has_suffix = true;
+      break;
     }
     if (!isdigit(c)) {lastc(); break;}
     buf[i] = c;
   }
 
-  // TODO: fix this
-  char *num_end;
-  tk_val_num = strtod(buf, &num_end);
-  if (*num_end != 'f') {
-          // assume a very large 'int' was attempted to be lexed
-          if (no_decimal) err("64-bit integer literal overflow");
-  } else
-          INCPOS();
-  if (errno == ERANGE) err("floating-point number overflow");
-  INCPOS();
+  tk_val_num = strtod(buf, NULL);
+  // assume a very large 'int' was attempted to be lexed
+  if (!has_suffix && !has_decimal) {err("64-bit integer literal overflow"); return;}
+  if (errno == ERANGE) {err("floating-point number overflow"); return;}
 }
 
 // NOTE: too lazy to error handle fget & set pos
 static int
 lex_dec_int_or_num(void)
 {
+  tk_val_int = 0;
   fpos_t start;
   fgetpos(src_fp, &start);
-  tk_val_int = 0;
   for (int c; c = nextc();) {
-    if (c == '.' || c == 'f') goto try_lex_num;
-    if (!isdigit(c)) {lastc(); break;}
-    if (tk_val_int > INT64_MAX / 10) goto try_lex_num;
+    if (c == '.' || c == 'f') break;
+    if (!isdigit(c)) {lastc(); return TK_INT;}
+    if (tk_val_int > INT64_MAX / 10) break;
     // C standard guarantees decimal digits are in order
     tk_val_int *= 10;
-    if (tk_val_int > INT64_MAX - (c - '0')) goto try_lex_num;
+    if (tk_val_int > INT64_MAX - (c - '0')) break;
     tk_val_int += (c - '0');
   }
-  return TK_INT;
 
-try_lex_num:
   // to allow rereading previous digit(s)
   fsetpos(src_fp, &start);
   lex_num();
@@ -312,7 +237,7 @@ lex_char(bool is_tk_lit_str)
   case '\'':
     err("Char cannot be empty"); return 0;
   case '\\': c = esc_seq(nextc());
-  case '"': if (is_tk_lit_str) return false;  // NOTE: true: non-terminated
+  case '"': if (is_tk_lit_str) return true;
   case '_': case '\t':              break;
   default:
     if (!isalnum(c) && !isspace(c) && !ispunct(c) && c != '_') err("Char must be ASCII idk");
@@ -322,6 +247,7 @@ lex_char(bool is_tk_lit_str)
     if (nextc() != '\'') err("Expected closing '\\'");
     tk_val_int = c;
   }
+  return false;
 }
 
 static void
@@ -395,7 +321,7 @@ static const int c2_cases4[] = {
 };
 
 // NOTES: line & column are not recorded only at error
-static int
+int
 lex_next(void)
 {
   for (int c; ; c = nextc()) {
