@@ -21,7 +21,9 @@ static FILE* src_fp;  // SET: 'lex_init()'
 
 // TBD: current c variable
 static int lazy_cur_c;
+
 #define nextc() (lazy_cur_c = getc(src_fp))
+#define peekc() (ungetc(getc(src_fp), src_fp))
 #define lastc() (ungetc(lazy_cur_c, src_fp))
 
 // TBD
@@ -168,7 +170,7 @@ lex_int(bool is_hex)
         return;
       }
     }
-    if (isxdigit()) err("Hexadecimal int exceeds max size");
+    if (isxdigit(peekc())) err("Hexadecimal int exceeds max size");
   } else {
     // binary
     for (int i = 0; i < 64; i++) {
@@ -185,8 +187,7 @@ lex_int(bool is_hex)
         return;
       }
     }
-    if (isdigit(nextc()) err("Binary int exceeds max size");
-    lastc();
+    if (isdigit(peekc())) err("Binary int exceeds max size");
   }
 }
 
@@ -197,57 +198,58 @@ lex_int(bool is_hex)
   CHECK for *suffix* 'f', otherwise error, assuming an attempt at lexing a massive 'int'
 */
 
-/*
+// TODO: check this
 static void
 lex_num(void)
 {
-        p_tk->type_group = G_LITERAL;
-        p_tk->type = TK_LIT_NUM;
-        // IF success 'src_txt' is advanced beyond the lexed num
-        errno = 0;
-        char *num_src_txt_end;
-        p_tk->value.fp_v = strtod(src_txt + src_i, &num_src_txt_end);
-        bool no_decimal = strchr(src_txt + src_i, '.') == NULL;
-        // point to *last digit* instead incase of overflow debugging error messages
-        SET_POS((num_src_txt_end - src_txt) - 1);
+  // IF success 'src_txt' is advanced beyond the lexed num
+  errno = 0;
 
-        if (*num_src_txt_end != 'f') {
-                // assume a very large 'int' was attempted to be lexed
-                if (no_decimal)
-                        LEX_ERR("64-bit integer literal overflow");
-        } else
-                INCPOS();
-        if (errno == ERANGE)
-                LEX_ERR("floating-point number overflow");
-        INCPOS();
-} */
+  bool no_decimal = false;
+  char buf[64];
+  for (int i = 0, c; c = nextc(), i < 64; i++) {
+    if (c == '.') {
+      if (no_decimal) {err("Duplicate decimal '.'"); return;}
+      no_decimal = true;
+    }
+    if (!isdigit(c)) {lastc(); break;}
+    buf[i] = c;
+  }
 
+  // TODO: fix this
+  char *num_end;
+  tk_val_num = strtod(buf, &num_end);
+  if (*num_end != 'f') {
+          // assume a very large 'int' was attempted to be lexed
+          if (no_decimal) err("64-bit integer literal overflow");
+  } else
+          INCPOS();
+  if (errno == ERANGE) err("floating-point number overflow");
+  INCPOS();
+}
+
+// NOTE: too lazy to error handle fget & set pos
 static int
 lex_dec_int_or_num(void)
 {
+  fpos_t start;
+  fgetpos(src_fp, &start);
   tk_val_int = 0;
-  int c;
-  while (true) {
-    c = GET_C();
-    if (c == '.' || c == 'f')
-      goto try_lex_num;
-    if (!isdigit(c))
-      return;
-    if (p_tk->value.int_v > INT64_MAX / 10) { printf("asd\n");
-      goto try_lex_num;}
+  for (int c; c = nextc();) {
+    if (c == '.' || c == 'f') goto try_lex_num;
+    if (!isdigit(c)) {lastc(); break;}
+    if (tk_val_int > INT64_MAX / 10) goto try_lex_num;
     // C standard guarantees decimal digits are in order
-    p_tk->value.int_v *= 10;
-    if (p_tk->value.int_v > INT64_MAX - (c - '0'))
-      goto try_lex_num;
-    p_tk->value.int_v += (c - '0');
-    INCPOS();
+    tk_val_int *= 10;
+    if (tk_val_int > INT64_MAX - (c - '0')) goto try_lex_num;
+    tk_val_int += (c - '0');
   }
+  return TK_INT;
 
 try_lex_num:
-  p_tk->value.fp_v = 0;
   // to allow rereading previous digit(s)
-  SET_POS(int_src_i_start);
-  lex_num(p_tk);
+  fsetpos(src_fp, &start);
+  lex_num();
   return TK_NUM;
 }
 
@@ -260,7 +262,7 @@ try_lex_num:
 #define IS_ID_C(c) (isalnum((c)) || (c) ==  '_')
 
 // TBD
-static void
+static int
 id_put(void)
 {
 
@@ -269,7 +271,7 @@ id_put(void)
 // TBD: 
 // TODO: reset tk_val_txt buf & txt_n
 // TODO: 'isalnum' => handle _
-static void
+static int
 lex_id(void)
 {
   
@@ -284,6 +286,7 @@ lex_id(void)
     }
   }
   // TBD: copy chars into txt bufs
+  return -5234;
 }
 
 static inline char
@@ -414,7 +417,7 @@ lex_next(void)
     case '<': case '>': case '^': {
       int c2 = nextc();
       if (c2 == '=') return c2_cases4[c] & 0x00F;
-      if (c2 == c)   return (nextc() == '=') ? (c2_cases4[c] & 0x0F0) : (c2_cases4[c] & 0xF00);
+      else if (c2 == c) return (nextc() == '=') ? (c2_cases4[c] & 0x0F0) : (lastc(), c2_cases4[c] & 0xF00);
       return c;
     }
     case ',': case '[': case ']': case '{': case '}':
@@ -435,15 +438,13 @@ lex_next(void)
             lastc();
             return lex_dec_int_or_num();
     case '.':
-            // no incpos, 'lex_num' needs to read '.' for fraction
-            if (isdigit(nextc()))
-                    lex_num();
-            else return '.';
+            if (isdigit(peekc())) {lastc(); lex_num(); return TK_LIT_NUM;}
+            return '.';
     case '_': return lex_id();
     default:
-            if (isdigit(c))           return lex_dec_int_or_num(p_tk);
-            else if (isalpha(c))      return lex_keyword_or_identifier(p_tk);
-            else {err_invalid_char(c); return EOF;}
+            if (isalpha(c)) return lex_id();
+            err_invalid_char(c);
+            return EOF;
     }
   }
 }
