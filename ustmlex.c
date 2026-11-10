@@ -1,5 +1,6 @@
 /* NOTES:
- * fix 'ungetc' as 1st arg requires int
+ * - line & column? handling
+ * - fix 'ungetc' as 1st arg requires int
  * - read all of file into memory then byte by byte faster than byte per disk read?
  * - chunking necessary for embedded only?
  * - fixed-size 32-bit instrs => byc constant table for strings & etc w/ large bytes # => 
@@ -19,9 +20,9 @@ extern int ustm_err;  // FROM: main.c
 static FILE* src_fp;  // SET: 'lex_init()'
 
 // TBD: current c variable
-static int lazy_cur_c_;
-#define nextc() (lazy_cur_c_ = getc(src_fp))
-#define lastc() (ungetc(lazy_cur_c_, src_fp))
+static int lazy_cur_c;
+#define nextc() (lazy_cur_c = getc(src_fp))
+#define lastc() (ungetc(lazy_cur_c, src_fp))
 
 // TBD
 int tk; // TBD: global tk over return value?
@@ -51,7 +52,7 @@ static struct Id {
   int len;
   int tk;
 } ids[ID_HASH_SIZE] = {0};
-static double syms[2];
+// static double syms[2];
 
 // redundant for some cases?
 static char tk_val_txt[MAX_STR_LEN];  // TBD: copy char (& process escape seqs) per fgetc?
@@ -69,9 +70,9 @@ static int txt_n = 0;
 
 // single-char tks <= 255 (UCHAR_MAX)
 enum {
-#define TK_CMPLX_OP_FIRST (UCHAR_MAX + 1)
+#define TK_CMPLX_FIRST (UCHAR_MAX + 1)
 
-  TK_INC = TK_CMPLX_OP_FIRST,
+  TK_INC = TK_CMPLX_FIRST,
   TK_DEC,
   TK_ADD_AS,
   TK_SUB_AS,
@@ -99,7 +100,12 @@ enum {
   TK_SH_R,
   TK_SH_R_AS,
   
-#define TK_KW_FIRST (TK_SH_R_AS + 1)
+  TK_LIT_CHAR,
+  TK_LIT_STR,
+  TK_LIT_INT,
+  TK_LIT_NUM,
+  
+#define TK_KW_FIRST (TK_LIT_NUM + 1)
 
   TK_NULL = TK_KW_FIRST,
   TK_TRUE,
@@ -140,74 +146,51 @@ static const char* kws[] = {
 static int tk_id = TK_UD_ID_FIRST;
 
 
+// TODO: handling signed ints & nums when unary '-' expr
+static void
+lex_int(bool is_hex)
+{
+  tk_val_int = 0;
+  int c;
+  if (is_hex) {
+    for (int i = 0; i < 8; i++) {
+      switch (c = nextc()) {
+      case 'a': case 'A': tk_val_int <<= 4 | 10; break;
+      case 'b': case 'B': tk_val_int <<= 4 | 11; break;
+      case 'c': case 'C': tk_val_int <<= 4 | 12; break;
+      case 'd': case 'D': tk_val_int <<= 4 | 13; break;
+      case 'e': case 'E': tk_val_int <<= 4 | 14; break;
+      case 'f': case 'F': tk_val_int <<= 4 | 15; break;
+      case '0': case '1': case '2': case '3': case '4':
+      case '5': case '6': case '7': case '8': case '9':
+        tk_val_int <<= 4 | (c - '0');
+      default:
+        return;
+      }
+    }
+    if (isxdigit()) err("Hexadecimal int exceeds max size");
+  } else {
+    // binary
+    for (int i = 0; i < 64; i++) {
+      switch (c = nextc()) {
+      case '0': case '1':
+        tk_val_int <<= 1 | (c - '0');
+        break;
+      case '2': case '3': case '4': case '5':
+      case '6': case '7': case '8': case '9':
+        err("Invalid binary digit");
+        return;
+      default:
+        lastc();
+        return;
+      }
+    }
+    if (isdigit(nextc()) err("Binary int exceeds max size");
+    lastc();
+  }
+}
 
-
-
-// support octal integers?
 /*
-static void lex_bin_int(struct Tk *p_tk)
-{
-        p_tk->type_group = G_LITERAL;
-        p_tk->type = TK_LIT_INT;
-        p_tk->value.int_v = 0;
-        char c = GET_C();
-        // never write this again please
-        for (int i = 0; i < 64; i++, (INCPOS(), c = GET_C())) {
-                if (c == '0' || c == '1') {
-                        p_tk->value.int_v <<= 1 | (c - '0');
-                        continue;
-                }
-
-                if (isdigit(c))
-                        err("Expected binary digits after binary"
-                                    " integer literal prefix '0b',"
-                                    " instead got decimal digit '%c'", c);
-                else if (isxdigit(c))
-                        err("Expected binary digits after binary"
-                                    " integer literal prefix '0b',"
-                                    " instead got hexadecimal digit '%c'", c);
-                // non-digit character case
-                break;
-        }
-
-        printf("%ld %c\n", src_column, c);
-        if (c == '0' || c == '1')
-                LEX_ERR("Binary integer literal exceeds 64 digits, above 64-bit range");
-        if (isdigit(c))
-                LEX_ERR_FMT("Binary integer literal exceeds 64 digits,"
-                        " above 64-bit range AND got decimal digit '%c'", c);
-        else if (isxdigit(c))
-                LEX_ERR_FMT("Binary integer literal exceeds 64 digits,"
-                            " above 64-bit range AND got hexadecimal"
-                            " digit '%c'", c);
-}
-
-static void lex_hex_int(struct Tk *p_tk)
-{
-        p_tk->type_group = G_LITERAL;
-        p_tk->type = TK_LIT_INT;
-        p_tk->value.int_v = 0;
-        char c;
-        for (int i = 0; i < 8; i++) {
-                switch (c = GET_C()) {
-                case 'a': case 'A': p_tk->value.int_v <<= 4 | 10; break;
-                case 'b': case 'B': p_tk->value.int_v <<= 4 | 11; break;
-                case 'c': case 'C': p_tk->value.int_v <<= 4 | 12; break;
-                case 'd': case 'D': p_tk->value.int_v <<= 4 | 13; break;
-                case 'e': case 'E': p_tk->value.int_v <<= 4 | 14; break;
-                case 'f': case 'F': p_tk->value.int_v <<= 4 | 15; break;
-                default:
-                        if (!isdigit(c))
-                                return;
-                        p_tk->value.int_v <<= 4 | (c - '0');
-                }
-                INCPOS();
-        }
-        if (isxdigit(GET_C()))
-                LEX_ERR("Hexadecimal integer literal exceeds 8 digits, above 64-bit range");
-}
-
-
   IF 'non-fractional_int' is true (1000% sure there is no *decimal point*,
   resulting from attempting to lex an int that would've *overflowed*)
 
@@ -239,38 +222,34 @@ lex_num(void)
         INCPOS();
 } */
 
-// probably need a more robust integer lexer
-/*
 static int
 lex_dec_int_or_num(void)
 {
-        p_tk->type_group = G_LITERAL;
-        p_tk->type = TK_LIT_INT;
-        long int_src_i_start = src_i;
-        char c;
-        while (true) {
-                c = GET_C();
-                if (c == '.' || c == 'f')
-                        goto try_lex_num;
-                if (!isdigit(c))
-                        return;
-                if (p_tk->value.int_v > INT64_MAX / 10) { printf("asd\n");
-                        goto try_lex_num;}
-                // C standard guarantees decimal digits are in order
-                p_tk->value.int_v *= 10;
-                if (p_tk->value.int_v > INT64_MAX - (c - '0'))
-                        goto try_lex_num;
-                p_tk->value.int_v += (c - '0');
-                INCPOS();
-        }
+  tk_val_int = 0;
+  int c;
+  while (true) {
+    c = GET_C();
+    if (c == '.' || c == 'f')
+      goto try_lex_num;
+    if (!isdigit(c))
+      return;
+    if (p_tk->value.int_v > INT64_MAX / 10) { printf("asd\n");
+      goto try_lex_num;}
+    // C standard guarantees decimal digits are in order
+    p_tk->value.int_v *= 10;
+    if (p_tk->value.int_v > INT64_MAX - (c - '0'))
+      goto try_lex_num;
+    p_tk->value.int_v += (c - '0');
+    INCPOS();
+  }
 
 try_lex_num:
-        p_tk->value.fp_v = 0;
-        // to allow rereading previous digit(s)
-        SET_POS(int_src_i_start);
-        lex_num(p_tk);
+  p_tk->value.fp_v = 0;
+  // to allow rereading previous digit(s)
+  SET_POS(int_src_i_start);
+  lex_num(p_tk);
+  return TK_NUM;
 }
-*/
 
 // FNV Constants for 32-Bit
 #define HASH_BASIS (uint32_t) 0x811c9dc5
@@ -432,24 +411,29 @@ lex_next(void)
     case '+': case '-': case '&': case '|':
       if (nextc() == c) return c_cases3[c] & 0xF0;
       return (nextc() == '=') ? (c_cases3[c] & 0x0F) : (c);
-    case '<': case '>': case '^':
-      if (nextc() == '=') return c2_cases4[c] & 0x00F;
-      if (currentc() == c)   return (nextc() == '=') ? (c2_cases4[c] & 0x0F0) : (c2_cases4[c] & 0xF00);
+    case '<': case '>': case '^': {
+      int c2 = nextc();
+      if (c2 == '=') return c2_cases4[c] & 0x00F;
+      if (c2 == c)   return (nextc() == '=') ? (c2_cases4[c] & 0x0F0) : (c2_cases4[c] & 0xF00);
       return c;
-      
+    }
     case ',': case '[': case ']': case '{': case '}':
     case '(': case ')': case '?': case ':': case ';':
       return c;
     case '\'': lex_char(false); return TK_LIT_CHAR;
     case '"':  lex_str();       return TK_LIT_STR;
     case '0':
-            c = nextc();
-            if (c == 'x')      lex_hex_int();
-            else if (c == 'b') lex_bin_int();
-            return TK_LIT_INT;
+            switch (c = nextc()) {
+            case 'b': case 'B':
+            case 'x': case 'X':
+             lex_int(c == 'x' || c == 'X');
+             return TK_LIT_INT;
+            default: lastc();
+            }
     case '1': case '2': case '3': case '4': case '5':
     case '6': case '7': case '8': case '9':
-            return lex_dec_int_or_num(p_tk);
+            lastc();
+            return lex_dec_int_or_num();
     case '.':
             // no incpos, 'lex_num' needs to read '.' for fraction
             if (isdigit(nextc()))

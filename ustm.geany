@@ -29,14 +29,14 @@ long_line_column=72
 
 [files]
 current_page=0
-FILE_NAME_0=2807;C;0;EUTF-8;0;1;0;%2Fhome%2Fipotato%2FPROJECTS%2FC99%2Fustm%2Fustmlex.c;0;2
+FILE_NAME_0=6169;C;0;EUTF-8;0;1;0;%2Fhome%2Fipotato%2FPROJECTS%2FC99%2Fustm%2Fustmlex.c;0;2
 FILE_NAME_1=365;C;0;EUTF-8;0;1;0;%2Fhome%2Fipotato%2FPROJECTS%2FC99%2Fustm%2Fustm.c;0;2
 FILE_NAME_2=188;C;0;EUTF-8;0;1;0;%2Fhome%2Fipotato%2FPROJECTS%2FC99%2Fustm%2Fustmgen.c;0;2
 FILE_NAME_3=14883;C++;0;EUTF-8;0;1;0;%2Fusr%2Finclude%2Ffeatures.h;0;2
 FILE_NAME_4=13;C++;0;EUTF-8;0;1;0;%2Fhome%2Fipotato%2FPROJECTS%2FC99%2Fustm%2Fustm.h;0;2
 
 [VTE]
-last_dir=/home/ipotato/PROJECTS/C99/ustm
+last_dir=/home/ipotato
 
 [build-menu]
 CFT_00_LB=_Compile
