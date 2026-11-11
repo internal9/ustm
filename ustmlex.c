@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <errno.h>
 #include <stdint.h>
 #include <limits.h>
 #include <stdbool.h>
@@ -25,8 +26,8 @@ static int lazy_cur_c;
 #define peekc() (ungetc(getc(src_fp), src_fp))
 #define lastc() (ungetc(lazy_cur_c, src_fp))
 
-// TBD
-int tk; // TBD: global tk over return value?
+// TBD: global tk over return value?
+// int tk;
 bool is_ident_duplicate = false;
 // something* p_sym;  // TBD: global var over retrieving tk value & sym, etc lookups
 
@@ -48,6 +49,7 @@ typedef double  ustm_num;
 // TBD: Might need const table (including string) in byc => string interning too? ORRR 'pushstr' 'movestr'
 #define ID_HASH_SIZE 512
 
+// TBD: change 'id' -> 'sym'
 static struct Id {
   char name[MAX_ID_LEN];
   int len;
@@ -74,7 +76,8 @@ static const char* kws[] = {
   "fn", "ref"
 };
 
-static int tk_id = TK_UD_ID_FIRST;
+// NOTE: 'lex_init()' will make it equal 'TK_UD_ID_FIRST' anyways
+static int tk_id = TK_KW_FIRST;
 
 
 // TODO: handling signed ints & nums when unary '-' expr
@@ -188,30 +191,32 @@ lex_dec_int_or_num(void)
 
 // TBD
 static int
-id_put(void)
+id_put_or_find(uint32_t hash)
 {
-
-}
-
-// TBD: 
-// TODO: reset tk_val_txt buf & txt_n
-// TODO: 'isalnum' => handle _
-static int
-lex_id(void)
-{
-  
-  uint32_t hash = HASH_BASIS;
-  for (int c; c = nextc(), IS_ID_C(c); FNV1A(hash, c), tk_val_txt[txt_n++] = c);
   hash &= (ID_HASH_SIZE - 1);
   for (int i = 0; i < ID_HASH_SIZE; i++) {
     struct Id id = ids[((int) hash + i) & (ID_HASH_SIZE - 1)];
+    if (id.len == txt_n && !strncmp(tk_val_txt, id.name, txt_n)) return id.tk;
     if (id.len == 0) {
       memcpy(&id.name, tk_val_txt, txt_n);
       id.len = txt_n;
+      id.tk = tk_id++;
+      return id.tk;
     }
   }
-  // TBD: copy chars into txt bufs
-  return -5234;
+}
+
+// TBD: 'tk_val_txt' replaced by txt buffers containing all txt & js use ptrs
+// TODO: reset tk_val_txt buf & txt_n
+// TODO: 'isalnum' => handle _
+static inline int
+lex_ud_id(void)
+{
+  // TODO: max_sym & str checks
+  txt_n = 0;
+  uint32_t hash = HASH_BASIS;
+  for (int c; c = nextc(), IS_ID_C(c); FNV1A(hash, c), tk_val_txt[txt_n++] = c);
+  return id_put_or_find(hash);
 }
 
 static inline char
@@ -290,15 +295,6 @@ err_invalid_char(int c)
   else err_fmt("Invalid non-printable symbol, character code of %d", (int) c);
 }
 
-static void
-lex_init(FILE* src_fp_arg)
-{
-
-  
-  src_fp = src_fp_arg;
-  // keywords, etc
-}
-
 static const int c_cases2[] = {
   ['!'] = TK_NOT_AS,
   ['='] = TK_EQ,
@@ -324,7 +320,7 @@ static const int c2_cases4[] = {
 int
 lex_next(void)
 {
-  for (int c; ; c = nextc()) {
+  for (int c; c = nextc();) {
     switch (c) {
     case ' ': case '\n': case '\r': case '\t': case '\v': case '\f':
       skip_whitespace(); break;
@@ -366,13 +362,28 @@ lex_next(void)
     case '.':
             if (isdigit(peekc())) {lastc(); lex_num(); return TK_LIT_NUM;}
             return '.';
-    case '_': return lex_id();
+    case '_': return lex_ud_id();
     default:
-            if (isalpha(c)) return lex_id();
+            if (isalpha(c)) return lex_ud_id();
             err_invalid_char(c);
             return EOF;
     }
   }
+}
+
+void
+lex_init(FILE* src_fp_arg)
+{
+  uint32_t hash = HASH_BASIS;
+  for (int i = 0; i < sizeof(kws) / sizeof(*kws); i++) {
+    const char* kw = kws[i];
+    for (int c; IS_ID_C(c = kw[txt_n]); FNV1A(hash, c), tk_val_txt[txt_n++] = c);
+    id_put_or_find(hash);
+    txt_n = 0;
+  }
+  
+  src_fp = src_fp_arg;
+  // keywords, etc
 }
 
 // NOTE: no peek func, each codegen func will end off with the current tk being next after last one needed

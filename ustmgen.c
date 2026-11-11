@@ -15,9 +15,22 @@
 static FILE* out_fp;
 
 static void
+verbose_tk(int tk)
+{
+  
+}
+
+/* static immense_bool
+sym_find(int tk)
+{
+  if (tk < TK_UD_ID_FIRST) return NULL;
+} */
+
+static void
 gen_block(void)
 {
-  switch (lex_next()) {
+  printf("%d\n", lex_next());
+  /* switch (lex_next()) {
   case EOF:
   case TK_IF:
   case TK_DO:
@@ -25,8 +38,7 @@ gen_block(void)
   case TK_FOR:
   case TK_CASES:
   case TK_JMP:
-  case TK_FN:
-  }
+  case TK_FN: */
 }
 
 void

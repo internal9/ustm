@@ -77,8 +77,8 @@ enum {
 };
 
 /* ustmlex.c */
-void lex_init(FILE* src_fp_arg, FILE* out_fp_arg);
-int  lex_next();
+void lex_init(FILE* src_fp_arg);
+int  lex_next(void);
 /* ustmgen.c */
 void gen_code(FILE* src_fp_arg, FILE* out_fp_arg);
 /* ustmvm.c  */
