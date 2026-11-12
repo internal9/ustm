@@ -12,13 +12,12 @@
 #include "ustm.h"
 #include <stdio.h>
 
+/* FROM: 'ustmlex.c' */
+extern char tk_val_txt[MAX_STR_LEN];
+
 static FILE* out_fp;
 
-static void
-verbose_tk(int tk)
-{
-  
-}
+
 
 /* static immense_bool
 sym_find(int tk)

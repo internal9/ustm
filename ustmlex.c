@@ -44,7 +44,8 @@ typedef double  ustm_num;
 
 // NOTE: applies to kws & user-defined idents (var, func name, etc)
 #define MAX_ID_LEN  64
-#define MAX_STR_LEN 512
+// #define MAX_STR_LEN 512
+
 // NOTE: Static hashing
 // TBD: Might need const table (including string) in byc => string interning too? ORRR 'pushstr' 'movestr'
 #define ID_HASH_SIZE 512
@@ -57,8 +58,8 @@ static struct Id {
 } ids[ID_HASH_SIZE] = {0};
 // static double syms[2];
 
-// redundant for some cases?
-static char tk_val_txt[MAX_STR_LEN];  // TBD: copy char (& process escape seqs) per fgetc?
+/* USED BY: 'ustemgen.c' */
+char tk_val_txt[MAX_STR_LEN];  // TBD: copy char (& process escape seqs) per fgetc?
 // static char *tk_val_txt; NOTE: lol change it to this later (NEVER HAPPENING) so str lens can be handled, buffering may require >= 1 block, or just fread the entire thing
 static ustm_int tk_val_int;  // NOTE: Holds character values too
 static ustm_num tk_val_num;
@@ -320,7 +321,7 @@ static const int c2_cases4[] = {
 int
 lex_next(void)
 {
-  for (int c; c = nextc();) {
+  for (int c, c2; c = nextc();) {
     switch (c) {
     case ' ': case '\n': case '\r': case '\t': case '\v': case '\f':
       skip_whitespace(); break;
@@ -330,16 +331,18 @@ lex_next(void)
     case '/':
       c = nextc();
       if (c == '/' || c == '*') skip_comment(c == '*');
-      else c = lastc();
+      else lastc();
+      break;
     case '!': case '=': case '*': case '%':
-      return ( (nextc() == '=') ? (c_cases2[c]) : (c) );
+      return ( (nextc() == '=') ? (c_cases2[c]) : (lastc(), c) );
     case '+': case '-': case '&': case '|':
-      if (nextc() == c) return c_cases3[c] & 0xF0;
-      return (nextc() == '=') ? (c_cases3[c] & 0x0F) : (c);
+      if ((c2 = nextc()) == c) return c_cases3[c] & 0xF0;
+      return (c2 == '=') ? (c_cases3[c] & 0x0F) : (lastc(), c);
     case '<': case '>': case '^': {
-      int c2 = nextc();
+      c2 = nextc();
       if (c2 == '=') return c2_cases4[c] & 0x00F;
       else if (c2 == c) return (nextc() == '=') ? (c2_cases4[c] & 0x0F0) : (lastc(), c2_cases4[c] & 0xF00);
+      lastc();
       return c;
     }
     case ',': case '[': case ']': case '{': case '}':
@@ -369,6 +372,12 @@ lex_next(void)
             return EOF;
     }
   }
+}
+
+int
+tk_verbose(int tk, bool tk_is_current)
+{
+  
 }
 
 void
