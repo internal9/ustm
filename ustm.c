@@ -44,6 +44,7 @@ main(int argc, const char* argv[argc])
   if (argc != 3) abort("Usage: ./ustm '{src}.ustm' '{out}.ustmbyc'");
   const char* src_name = argv[1];
   const char* out_name = argv[2];
+  if (!strcmp(src_name, out_name)) abort("Source name cannot be same as outfile name");
   FILE* src_fp = open_src(src_name);
   if (!src_fp) return 1;
   FILE* out_fp = open_out(out_name);
