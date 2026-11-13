@@ -28,7 +28,7 @@ long_line_behaviour=1
 long_line_column=72
 
 [files]
-current_page=0
+current_page=1
 FILE_NAME_0=10484;C;0;EUTF-8;0;1;0;%2Fhome%2Fipotato%2FPROJECTS%2FC99%2Fustm%2Fustmlex.c;0;2
 FILE_NAME_1=615;C;0;EUTF-8;0;1;0;%2Fhome%2Fipotato%2FPROJECTS%2FC99%2Fustm%2Fustmgen.c;0;2
 FILE_NAME_2=12;C++;0;EUTF-8;0;1;0;%2Fhome%2Fipotato%2FPROJECTS%2FC99%2Fustm%2Fustm.h;0;2
