@@ -334,24 +334,28 @@ lex_next(void)
   switch (c = nextc()) {
   case EOF:
     if (ferror(src_fp)) err("Lexing source read error");
-    tk = EOF; break;
+    tk = EOF;
+    break;
   case '/': case '!': case '=': case '*': case '%':
-    tk = ( (nextc() == '=') ? (c_cases2[c]) : (lastc(), c) ); break;
+    tk = ( (nextc() == '=') ? (c_cases2[c]) : (lastc(), c) );
+    break;
   case '+': case '-': case '&': case '|':
-    if ((c2 = nextc()) == c) return c_cases3[c] & 0xF0;
-    tk = (c2 == '=') ? (c_cases3[c] & 0x0F) : (lastc(), c); break;
+    if ((c2 = nextc()) == c) tk = c_cases3[c] & 0xF0;
+    else tk = (c2 == '=') ? (c_cases3[c] & 0x0F) : (lastc(), c);
+    break;
   case '<': case '>': case '^': {
     c2 = nextc();
-    if (c2 == '=') {tk = c2_cases4[c] & 0x00F; break;}
-    else if (c2 == c) {tk = (nextc() == '=') ? (c2_cases4[c] & 0x0F0) : (lastc(), c2_cases4[c] & 0xF00); break;}
-    lastc();
-    tk = c; break;
+    if (c2 == '=') tk = c2_cases4[c] & 0x00F;
+    else if (c2 == c) {tk = (nextc() == '=') ? (c2_cases4[c] & 0x0F0) : (lastc(), c2_cases4[c] & 0xF00);}
+    else {lastc(); tk = c;}
+    break;
   }
   case '.':
     if (isdigit(peekc())) {lastc(); lex_num(); tk = TK_LIT_NUM; break;}
   case ',': case '[': case ']': case '{': case '}':
   case '(': case ')': case '?': case ':': case ';':
-    return c;
+    tk = c;
+    break;
   case '\'': lex_char(false); tk = TK_LIT_CHAR; break;
   case '"':  lex_str();       tk = TK_LIT_STR; break;
   case '0':
@@ -359,7 +363,8 @@ lex_next(void)
     case 'b': case 'B':
     case 'x': case 'X':
      lex_int(c == 'x' || c == 'X');
-     tk = TK_LIT_INT; break;
+     tk = TK_LIT_INT;
+     break;
     default: lastc();
     }
   case '1': case '2': case '3': case '4': case '5':
