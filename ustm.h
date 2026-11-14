@@ -52,14 +52,17 @@ enum {
   
 #define TK_KW_FIRST (TK_LIT_NUM + 1)
 
+  TK_CONST,
   TK_NULL = TK_KW_FIRST,
+  TK_PTR,
   TK_TRUE,
   TK_FALSE,
   TK_BOOL,
   TK_CHAR,
   TK_INT,
   TK_NUM,
-  TK_STRING,
+  // TBD:
+  // TK_STRING,
   TK_ARRAY,
   TK_STRUCT,
   TK_IF,
@@ -71,11 +74,20 @@ enum {
   TK_CASES,
   TK_JMP,
   TK_FN,
-  TK_REF
   
   // NOTE: 'UD' => 'user-defined'
   // NOTE: Will be used for string-interning (unles string len fitsinstr)
-#define TK_UD_ID_FIRST (TK_REF + 1)
+#define TK_UD_ID_FIRST (TK_FN + 1)
+};
+
+enum {
+  TY_BOOL,
+  TY_CHAR,
+  TY_INT,
+  TY_NUM,
+  TY_ARR,
+  TY_STRUCT,
+  MOD_CONST
 };
 
 /* ustmlex.c */

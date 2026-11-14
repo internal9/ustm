@@ -26,10 +26,8 @@ static int lazy_cur_c;
 #define peekc() (ungetc(getc(src_fp), src_fp))
 #define lastc() (ungetc(lazy_cur_c, src_fp))
 
-// TBD: global tk over return value?
-// int tk;
-bool is_ident_duplicate = false;
-// something* p_sym;  // TBD: global var over retrieving tk value & sym, etc lookups
+int tk;
+//bool is_ident_duplicate = false;
 
 // NOTE: char type just uses native C type, no seperate typedef
 typedef int64_t ustm_int;
@@ -48,14 +46,14 @@ typedef double  ustm_num;
 
 // NOTE: Static hashing
 // TBD: Might need const table (including string) in byc => string interning too? ORRR 'pushstr' 'movestr'
-#define ID_HASH_SIZE 512
+#define MAX_IDS 512
 
 // TBD: change 'id' -> 'sym'
 static struct Id {
   char name[MAX_ID_LEN];
   int len;
   int tk;
-} ids[ID_HASH_SIZE] = {0};
+} ids[MAX_IDS] = {0};
 // static double syms[2];
 
 /* USED BY: 'ustemgen.c' */
@@ -74,7 +72,7 @@ static const char* kws[] = {
   "if", "elif", "else",
   "while", "for",
   "cases", "jmp",
-  "fn", "ref"
+  "fn", "ptr"
 };
 
 // NOTE: 'lex_init()' will make it equal 'TK_UD_ID_FIRST' anyways
@@ -82,6 +80,7 @@ static int tk_id = TK_KW_FIRST;
 
 
 // TODO: handling signed ints & nums when unary '-' expr
+/* only base10 values have fraction feature */
 static void
 lex_int(bool is_hex)
 {
@@ -166,9 +165,9 @@ lex_dec_int_or_num(void)
   tk_val_int = 0;
   fpos_t start;
   fgetpos(src_fp, &start);
-  for (int c; c = nextc();) {
+  for (int c; (c = nextc());) {
     if (c == '.' || c == 'f') break;
-    if (!isdigit(c)) {lastc(); return TK_INT;}
+    if (!isdigit(c)) {lastc(); return TK_LIT_INT;}
     if (tk_val_int > INT64_MAX / 10) break;
     // C standard guarantees decimal digits are in order
     tk_val_int *= 10;
@@ -179,7 +178,7 @@ lex_dec_int_or_num(void)
   // to allow rereading previous digit(s)
   fsetpos(src_fp, &start);
   lex_num();
-  return TK_NUM;
+  return TK_LIT_NUM;
 }
 
 // FNV Constants for 32-Bit
@@ -194,9 +193,9 @@ lex_dec_int_or_num(void)
 static int
 id_put_or_find(uint32_t hash)
 {
-  hash &= (ID_HASH_SIZE - 1);
-  for (int i = 0; i < ID_HASH_SIZE; i++) {
-    struct Id id = ids[((int) hash + i) & (ID_HASH_SIZE - 1)];
+  hash &= (MAX_IDS - 1);
+  for (int i = 0; i < MAX_IDS; i++) {
+    struct Id id = ids[((int) hash + i) & (MAX_IDS - 1)];
     if (id.len == txt_n && !strncmp(tk_val_txt, id.name, txt_n)) return id.tk;
     if (id.len == 0) {
       memcpy(&id.name, tk_val_txt, txt_n);
@@ -208,8 +207,6 @@ id_put_or_find(uint32_t hash)
 }
 
 // TBD: 'tk_val_txt' replaced by txt buffers containing all txt & js use ptrs
-// TODO: reset tk_val_txt buf & txt_n
-// TODO: 'isalnum' => handle _
 static inline int
 lex_ud_id(void)
 {
@@ -321,63 +318,61 @@ static const int c2_cases4[] = {
 int
 lex_next(void)
 {
-  for (int c, c2; c = nextc();) {
-    switch (c) {
-    case ' ': case '\n': case '\r': case '\t': case '\v': case '\f':
-      skip_whitespace(); break;
-    case EOF:
-      if (ferror(src_fp)) err("Lexing source read error");
-      return EOF;
-    case '/':
+  int c, c2;
+  switch (c = nextc()) {
+  case ' ': case '\n': case '\r': case '\t': case '\v': case '\f':
+      skip_whitespace();
+      break;
+  case '/':
       c = nextc();
       if (c == '/' || c == '*') skip_comment(c == '*');
       else lastc();
-      break;
-    case '!': case '=': case '*': case '%':
-      return ( (nextc() == '=') ? (c_cases2[c]) : (lastc(), c) );
-    case '+': case '-': case '&': case '|':
-      if ((c2 = nextc()) == c) return c_cases3[c] & 0xF0;
-      return (c2 == '=') ? (c_cases3[c] & 0x0F) : (lastc(), c);
-    case '<': case '>': case '^': {
-      c2 = nextc();
-      if (c2 == '=') return c2_cases4[c] & 0x00F;
-      else if (c2 == c) return (nextc() == '=') ? (c2_cases4[c] & 0x0F0) : (lastc(), c2_cases4[c] & 0xF00);
-      lastc();
-      return c;
-    }
-    case ',': case '[': case ']': case '{': case '}':
-    case '(': case ')': case '?': case ':': case ';':
-      return c;
-    case '\'': lex_char(false); return TK_LIT_CHAR;
-    case '"':  lex_str();       return TK_LIT_STR;
-    case '0':
-            switch (c = nextc()) {
-            case 'b': case 'B':
-            case 'x': case 'X':
-             lex_int(c == 'x' || c == 'X');
-             return TK_LIT_INT;
-            default: lastc();
-            }
-    case '1': case '2': case '3': case '4': case '5':
-    case '6': case '7': case '8': case '9':
-            lastc();
-            return lex_dec_int_or_num();
-    case '.':
-            if (isdigit(peekc())) {lastc(); lex_num(); return TK_LIT_NUM;}
-            return '.';
-    case '_': return lex_ud_id();
-    default:
-            if (isalpha(c)) return lex_ud_id();
-            err_invalid_char(c);
-            return EOF;
-    }
   }
-}
-
-int
-tk_verbose(int tk, bool tk_is_current)
-{
+  lastc();
   
+  
+  switch (c = nextc()) {
+  case EOF:
+    if (ferror(src_fp)) err("Lexing source read error");
+    tk = EOF; break;
+  case '/': case '!': case '=': case '*': case '%':
+    tk = ( (nextc() == '=') ? (c_cases2[c]) : (lastc(), c) ); break;
+  case '+': case '-': case '&': case '|':
+    if ((c2 = nextc()) == c) return c_cases3[c] & 0xF0;
+    tk = (c2 == '=') ? (c_cases3[c] & 0x0F) : (lastc(), c); break;
+  case '<': case '>': case '^': {
+    c2 = nextc();
+    if (c2 == '=') {tk = c2_cases4[c] & 0x00F; break;}
+    else if (c2 == c) {tk = (nextc() == '=') ? (c2_cases4[c] & 0x0F0) : (lastc(), c2_cases4[c] & 0xF00); break;}
+    lastc();
+    tk = c; break;
+  }
+  case '.':
+    if (isdigit(peekc())) {lastc(); lex_num(); tk = TK_LIT_NUM; break;}
+  case ',': case '[': case ']': case '{': case '}':
+  case '(': case ')': case '?': case ':': case ';':
+    return c;
+  case '\'': lex_char(false); tk = TK_LIT_CHAR; break;
+  case '"':  lex_str();       tk = TK_LIT_STR; break;
+  case '0':
+    switch (c = nextc()) {
+    case 'b': case 'B':
+    case 'x': case 'X':
+     lex_int(c == 'x' || c == 'X');
+     tk = TK_LIT_INT; break;
+    default: lastc();
+    }
+  case '1': case '2': case '3': case '4': case '5':
+  case '6': case '7': case '8': case '9':
+    lastc();
+    tk = lex_dec_int_or_num(); break;
+  case '_': tk = lex_ud_id(); break;
+  default:
+    if (isalpha(c)) {tk = lex_ud_id(); break;}
+    err_invalid_char(c);
+    tk = EOF; break;
+  }
+  return tk;
 }
 
 void
