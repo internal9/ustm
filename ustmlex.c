@@ -46,6 +46,7 @@ typedef double  ustm_num;
 
 // NOTE: Static hashing
 // TBD: Might need const table (including string) in byc => string interning too? ORRR 'pushstr' 'movestr'
+// NOTE: should be a *power of 2* since using bitwise modulo
 #define MAX_IDS 512
 
 // TBD: change 'id' -> 'sym'
@@ -194,17 +195,24 @@ lex_dec_int_or_num(void)
 static int
 id_put_or_find(uint32_t hash)
 {
+  //for (int i = 0; i < txt_n; i++) putc(tk_val_txt[i], stdout);
+  //putchar('\n');
+  // kw ids accounted for in check too lazy to do otherwise
+  if (tk_id - TK_KW_FIRST == MAX_IDS) err("Max identiifers count reached");
   hash &= (MAX_IDS - 1);
   for (int i = 0; i < MAX_IDS; i++) {
-    struct Id id = ids[((int) hash + i) & (MAX_IDS - 1)];
-    if (id.len == txt_n && !strncmp(tk_val_txt, id.name, txt_n)) return id.tk;
-    if (id.len == 0) {
-      memcpy(&id.name, tk_val_txt, txt_n);
-      id.len = txt_n;
-      id.tk = tk_id++;
-      return id.tk;
+    struct Id* p_id = ids + ( (hash + i) & (MAX_IDS - 1) );
+    //printf("%d %d\n", id.len, txt_n);
+    
+    if (p_id->len == txt_n && !memcmp(tk_val_txt, p_id->name, txt_n)) return p_id->tk;
+    if (p_id->len == 0) {
+      memcpy(p_id->name, tk_val_txt, txt_n);
+      p_id->len = txt_n;
+      p_id->tk = tk_id++;
+      return p_id->tk;
     }
   }
+  
 }
 
 // TBD: 'tk_val_txt' replaced by txt buffers containing all txt & js use ptrs
@@ -214,7 +222,7 @@ lex_id(void)
   // TODO: max_sym & str checks
   txt_n = 0;
   uint32_t hash = HASH_BASIS;
-  for (int c; c = nextc(), IS_ID_C(c); FNV1A(hash, c), tk_val_txt[txt_n++] = c);
+  for (int c; c = nextc(), IS_ID_C(c); hash = FNV1A(hash, c), tk_val_txt[txt_n++] = c);
   return id_put_or_find(hash);
 }
 
@@ -374,9 +382,9 @@ skip_non_tk:
   case '6': case '7': case '8': case '9':
     lastc();
     tk = lex_dec_int_or_num(); break;
-  case '_': tk = lex_id(); break;
+  case '_': lastc(); tk = lex_id(); break;
   default:
-    if (isalpha(c)) {tk = lex_id(); break;}
+    if (isalpha(c)) {lastc(); tk = lex_id(); break;}
     err_invalid_char(c);
     tk = EOF; break;
   }
@@ -386,10 +394,10 @@ skip_non_tk:
 void
 lex_init(FILE* src_fp_arg)
 {
-  uint32_t hash = HASH_BASIS;
   for (int i = 0; i < sizeof(kws) / sizeof(*kws); i++) {
+    uint32_t hash = HASH_BASIS;
     const char* kw = kws[i];
-    for (int c; IS_ID_C(c = kw[txt_n]); FNV1A(hash, c), tk_val_txt[txt_n++] = c);
+    for (int c; IS_ID_C(c = kw[txt_n]); hash = FNV1A(hash, c), tk_val_txt[txt_n++] = c);
     id_put_or_find(hash);
     txt_n = 0;
   }

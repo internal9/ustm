@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+
 /* FROM: 'ustm.c' */
 extern int ustm_err;
 
@@ -27,6 +28,7 @@ extern char tk_val_txt[MAX_STR_LEN];
 
 static FILE* out_fp;
 
+#define skip_cur(expected_tk) ((tk != expected_tk) ? (err("Expected.."), false) : (true))
 /* int bits atleast 16: 0b0000000000000_000 */
 // arr_szs: 0b 00000000_00000000_00000000_00000000
 // arr_flags: 0b 00_00_00_00
@@ -43,10 +45,11 @@ static FILE* out_fp;
 
 
 struct TySpec {
+  unsigned int* arr_dims;
   union {
     unsigned int* fields;
-    int struct_ref;
-  } aggr;
+    int ref;
+  } struct_data;
   //struct TySpec* ptr;
   int flags;
   /* arr or struct */
@@ -58,8 +61,7 @@ static struct Sym {
   
 } syms[MAX_SYMS];
 
-#define TY 2
-#define MOD_CONST 0x1234567890
+#define TY 0x7 // 0b111
 
 #define IS_UD_ID(tk) ((tk) >= TK_UD_ID_FIRST)
 
@@ -89,19 +91,22 @@ read_decl_spec(bool allow_modifiers)
   default: err("uhhh");
   }
   
-  for (lex_next() == '[' && (ty_spec.flags |= TY_ARR); lex_next() == '[';) {
-    lex_next();
-    if (tk == ']') {
-      
-      continue;
+  if (lex_next() == '[') {
+    ty_spec.flags |= TY_ARR;
+    for (int i; lex_next() == '['; i++) {
+      lex_next();
+      if (tk == ']') {
+        
+        continue;
+      }
+        
+      if (tk == '*') {
+        // optional expr
+      } else {
+        // if (!const expr)
+      }
+      if (tk != ']') {err("Expected closing ']'"); break;}
     }
-      
-    if (tk == '*') {
-      // optional expr
-    } else {
-      // if (!const expr)
-    }
-    if (tk != ']') {err("Expected closing ']'"); break;}
   }
   return ty_spec;
 }
@@ -113,8 +118,7 @@ gen_decl(void)
   struct TySpec ty_spec = read_decl_spec(true);
   if (!IS_UD_ID(tk)) {err("Expected identifier"); return;}
   lex_next();
-  if (tk == ';'); // TBD: null or garbage
-  else if (tk == '='); //gen_expr();
+  if (tk == '='); //gen_expr();
   
 }
 

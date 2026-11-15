@@ -80,13 +80,14 @@ enum {
 };
 
 enum {
-  TY_BOOL,
-  TY_CHAR,
-  TY_INT,
-  TY_NUM,
-  TY_ARR,
-  TY_STRUCT,
-  MOD_CONST
+  TY_BOOL   = 0x0,  // 0b000
+  TY_CHAR   = 0x1,  // 0b001
+  TY_INT    = 0x2,  // 0b010
+  TY_NUM    = 0x3,  // 0b100
+  TY_STRUCT = 0x4,  // 0b101
+  TY_ARR    = 0x8,  // 0b1000
+  MOD_REF   = 0x10, // 0b10000
+  MOD_CONST = 0x20, // 0b100000
 };
 
 /* ustmlex.c */
