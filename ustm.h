@@ -52,9 +52,9 @@ enum {
   
 #define TK_KW_FIRST (TK_LIT_NUM + 1)
 
-  TK_CONST,
-  TK_NULL = TK_KW_FIRST,
-  TK_PTR,
+  TK_CONST = TK_KW_FIRST,
+  TK_REF,
+  TK_NULL,
   TK_TRUE,
   TK_FALSE,
   TK_BOOL,
@@ -68,7 +68,6 @@ enum {
   TK_IF,
   TK_ELIF,
   TK_ELSE,
-  TK_DO,
   TK_WHILE,
   TK_FOR,
   TK_CASES,

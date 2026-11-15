@@ -10,6 +10,8 @@
  */
 
 #include "ustm.h"
+#include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -31,9 +33,8 @@ static FILE* out_fp;
 // struct_fields: 0b 0000
 // ty_data: 0b 00_00_000
 
-#define SZ_EMPTY
-#define SZ_STATIC
-#define SZ_DYNAMIC
+#define SZ_STATIC  
+#define SZ_DYNAMIC 0x8000 // 0b1000000000000000
 
 #define SET_TY(ty) ty 
 
@@ -43,7 +44,7 @@ static FILE* out_fp;
 
 struct TySpec {
   union {
-    int* fields;
+    unsigned int* fields;
     int struct_ref;
   } aggr;
   //struct TySpec* ptr;
@@ -68,12 +69,13 @@ sym_find(int tk)
   if (tk < TK_UD_ID_FIRST) return NULL;
 } */
 
+// TODO: 'ref' param handling
 static struct TySpec
 read_decl_spec(bool allow_modifiers)
 {
   struct TySpec ty_spec;
   switch (tk) {
-  case TK_CONST: {ty_spec |= MOD_CONST; lex_next(); break;}
+  case TK_CONST: {ty_spec.flags |= MOD_CONST; lex_next(); break;}
   /* ... */
   default:
     ;
@@ -84,10 +86,24 @@ read_decl_spec(bool allow_modifiers)
   case TK_CHAR: ty_spec.flags |= TY_CHAR;
   case TK_INT: ty_spec.flags |= TY_INT;
   case TK_NUM: ty_spec.flags |= TY_NUM;
-  case TK_PTR: ty_spec.flags |= TY_PTR; // TODO: hiearchical ptrs
   default: err("uhhh");
   }
-  return ty_spec
+  
+  for (lex_next() == '[' && (ty_spec.flags |= TY_ARR); lex_next() == '[';) {
+    lex_next();
+    if (tk == ']') {
+      
+      continue;
+    }
+      
+    if (tk == '*') {
+      // optional expr
+    } else {
+      // if (!const expr)
+    }
+    if (tk != ']') {err("Expected closing ']'"); break;}
+  }
+  return ty_spec;
 }
 
 
@@ -105,10 +121,11 @@ gen_decl(void)
 static void
 gen_block(void)
 {
+  // NOTE: first tk set by 'lex_init'
   printf("TK: %d\n", tk);
   switch (tk) {
   case EOF: break;
-  case TK_PTR:
+  case TK_REF:
   case TK_BOOL: case TK_CHAR: case TK_INT: case TK_NUM:
     gen_decl();
     break;
@@ -130,6 +147,5 @@ gen_code(FILE* src_fp_arg, FILE* out_fp_arg)
   lex_init(src_fp_arg);
   // gen_headers();
   // gen_const_table();
-  lex_next();
   gen_block();
 }

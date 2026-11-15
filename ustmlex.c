@@ -66,13 +66,14 @@ static int txt_n = 0;
 
 // NOTE: In same order as enums
 static const char* kws[] = {
+  "const", "ref",
   "null", "true", "false",
   "bool", "char", "int", "num",
-  "string", "array", "struct",
+  "array", "struct",
   "if", "elif", "else",
   "while", "for",
   "cases", "jmp",
-  "fn", "ptr"
+  "fn",
 };
 
 // NOTE: 'lex_init()' will make it equal 'TK_UD_ID_FIRST' anyways
@@ -207,8 +208,8 @@ id_put_or_find(uint32_t hash)
 }
 
 // TBD: 'tk_val_txt' replaced by txt buffers containing all txt & js use ptrs
-static inline int
-lex_ud_id(void)
+static int
+lex_id(void)
 {
   // TODO: max_sym & str checks
   txt_n = 0;
@@ -283,7 +284,8 @@ skip_comment(bool is_multi_line)
         if (c == '/') break;
       }
     }
-  else do if ((c = nextc()) == EOF) {lastc(); break;} while (c != '\n');
+  else
+    do if (printf("asddd %c\n", c), (c = nextc()) == EOF) {lastc(); break;} while (c != '\n');
 }
 
 static inline void
@@ -319,19 +321,20 @@ int
 lex_next(void)
 {
   int c, c2;
+  
+skip_non_tk:
   switch (c = nextc()) {
   case ' ': case '\n': case '\r': case '\t': case '\v': case '\f':
       skip_whitespace();
-      break;
+      goto skip_non_tk;
   case '/':
       c = nextc();
       if (c == '/' || c == '*') skip_comment(c == '*');
       else lastc();
+      goto skip_non_tk;
   }
-  lastc();
   
-  
-  switch (c = nextc()) {
+  switch (c) {
   case EOF:
     if (ferror(src_fp)) err("Lexing source read error");
     tk = EOF;
@@ -371,9 +374,9 @@ lex_next(void)
   case '6': case '7': case '8': case '9':
     lastc();
     tk = lex_dec_int_or_num(); break;
-  case '_': tk = lex_ud_id(); break;
+  case '_': tk = lex_id(); break;
   default:
-    if (isalpha(c)) {tk = lex_ud_id(); break;}
+    if (isalpha(c)) {tk = lex_id(); break;}
     err_invalid_char(c);
     tk = EOF; break;
   }
@@ -392,7 +395,5 @@ lex_init(FILE* src_fp_arg)
   }
   
   src_fp = src_fp_arg;
-  // keywords, etc
+  lex_next(); // first tk
 }
-
-// NOTE: no peek func, each codegen func will end off with the current tk being next after last one needed
