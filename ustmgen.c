@@ -16,10 +16,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-
-/* FROM: 'ustm.c' */
-extern int ustm_err;
-
 /* FROM: 'ustmlex.c' */
 extern int tk;
 extern char tk_val_txt[MAX_STR_LEN];
@@ -28,7 +24,8 @@ extern char tk_val_txt[MAX_STR_LEN];
 
 static FILE* out_fp;
 
-#define skip_cur(expected_tk) ((tk != expected_tk) ? (err("Expected.."), false) : (true))
+#define skip_cur(expected_tk)  ( (tk != expected_tk) ? err("Expected 'tk' got 'tk'") : lex_next() )
+#define skip_next(expected_tk) ( (lex_next() != expected_tk) ? err("Expected 'tk' got 'tk'") : lex_next() )
 /* int bits atleast 16: 0b0000000000000_000 */
 // arr_szs: 0b 00000000_00000000_00000000_00000000
 // arr_flags: 0b 00_00_00_00

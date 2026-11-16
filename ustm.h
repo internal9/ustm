@@ -1,10 +1,12 @@
 /* ustm.h */
+#include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <limits.h>
 
-#define err(msg)          (fprintf(stderr, msg "\n"), (ustm_err = 1))
-#define err_fmt(fmt, ...) (fprintf(stderr, fmt "\n", __VA_ARGS__), (ustm_err = 1))
+/* 'exit()' should close all open streams anyways, could be replaced be a global cleanup func if needed */
+#define err(msg)          (fprintf(stderr, msg "\n"), exit(EXIT_FAILURE))
+#define err_fmt(fmt, ...) (fprintf(stderr, fmt "\n", __VA_ARGS__), exit(EXIT_FAILURE))
 
 #define MAX_STR_LEN 512
 

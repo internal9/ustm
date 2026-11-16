@@ -28,11 +28,11 @@ long_line_behaviour=1
 long_line_column=72
 
 [files]
-current_page=4
-FILE_NAME_0=1310;C++;0;EUTF-8;0;1;0;%2Fhome%2Fipotato%2FPROJECTS%2FC99%2Fustm%2Fustm.h;0;2
-FILE_NAME_1=6080;C;0;EUTF-8;0;1;0;%2Fhome%2Fipotato%2FPROJECTS%2FC99%2Fustm%2Fustmlex.c;0;2
-FILE_NAME_2=1201;C;0;EUTF-8;0;1;0;%2Fhome%2Fipotato%2FPROJECTS%2FC99%2Fustm%2Fustmgen.c;0;2
-FILE_NAME_3=346;C;0;EUTF-8;0;1;0;%2Fhome%2Fipotato%2FPROJECTS%2FC99%2Fustm%2Fustm.c;0;2
+current_page=1
+FILE_NAME_0=198;C++;0;EUTF-8;0;1;0;%2Fhome%2Fipotato%2FPROJECTS%2FC99%2Fustm%2Fustm.h;0;2
+FILE_NAME_1=7654;C;0;EUTF-8;0;1;0;%2Fhome%2Fipotato%2FPROJECTS%2FC99%2Fustm%2Fustmlex.c;0;2
+FILE_NAME_2=659;C;0;EUTF-8;0;1;0;%2Fhome%2Fipotato%2FPROJECTS%2FC99%2Fustm%2Fustmgen.c;0;2
+FILE_NAME_3=155;C;0;EUTF-8;0;1;0;%2Fhome%2Fipotato%2FPROJECTS%2FC99%2Fustm%2Fustm.c;0;2
 FILE_NAME_4=4;None;0;EUTF-8;0;1;0;%2Fhome%2Fipotato%2FPROJECTS%2FC99%2Fustm%2FTEST%2Ftest1.ustm;0;2
 
 [VTE]

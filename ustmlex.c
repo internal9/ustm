@@ -15,16 +15,19 @@
 #include <limits.h>
 #include <stdbool.h>
 
-extern int ustm_err;  // FROM: main.c
+static FILE* src_fp;  // SET BY: 'lex_init()'
 
-static FILE* src_fp;  // SET: 'lex_init()'
-
-// TBD: current c variable
+int line = 0;
+int column = 0;
+static int last_column;
 static int lazy_cur_c;
 
-#define nextc() (lazy_cur_c = getc(src_fp))
+#define upd_pos_fw_(c) ( ((c) == '\n') ? (line++, column = 0) : (last_column = column++) )
+#define upd_pos_bw_(c) ( ((c) == '\n') ? (line++, column = last_column) : (last_column = column++) )
+
+#define nextc() (upd_pos_fw_(lazy_cur_c = getc(src_fp)), lazy_cur_c)
 #define peekc() (ungetc(getc(src_fp), src_fp))
-#define lastc() (ungetc(lazy_cur_c, src_fp))
+#define lastc() (upd_pos_bw_(lazy_cur_c = ungetc(lazy_cur_c, src_fp)), lazy_cur_c)
 
 int tk;
 //bool is_ident_duplicate = false;
@@ -246,11 +249,10 @@ lex_char(bool is_tk_lit_str)
 {
   int c = nextc();
   switch (c) {
-  case '\'':
-    err("Char cannot be empty"); return 0;
+  case '\'': err("Char cannot be empty");
   case '\\': c = esc_seq(nextc());
-  case '"': if (is_tk_lit_str) return true;
-  case '_': case '\t':              break;
+  case '"': if (is_tk_lit_str) return true;  // don't write '"' to buf
+  case '_': case '\t': break;
   default:
     if (!isalnum(c) && !isspace(c) && !ispunct(c) && c != '_') err("Char must be ASCII idk");
   }
@@ -268,7 +270,6 @@ lex_str(void)
   for (;;) {
     if (txt_n > MAX_STR_LEN) {err("String size exceeded limit"); return;}
     if (lex_char(true)) return;
-    if (ustm_err) {err("Unterminated string"); break;}
   }
 }
 
@@ -405,3 +406,6 @@ lex_init(FILE* src_fp_arg)
   src_fp = src_fp_arg;
   lex_next(); // first tk
 }
+
+// void
+
