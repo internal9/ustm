@@ -63,8 +63,8 @@ enum {
   TK_CHAR,
   TK_INT,
   TK_NUM,
-  // TBD:
-  // TK_STRING,
+  /* TBD: */
+  /* TK_STRING, */
   TK_ARRAY,
   TK_STRUCT,
   TK_IF,
