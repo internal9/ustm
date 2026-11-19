@@ -16,18 +16,19 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/* TBD: prob remove 'MAX_SYMS' & 'MAX_IDS' if using heap */
+#define MAX_SYMS 256
+#define ARENA_SZ_INIT 256
+#define skip_cur(expected_tk)  ( (tk != expected_tk) ? err("Expected 'tk' got 'tk'") : lex_next() )
+#define skip_next(expected_tk) ( (lex_next() != expected_tk) ? err("Expected 'tk' got 'tk'") : lex_next() )
+
 /* FROM: 'ustmlex.c' */
 extern int tk;
 extern char tk_val_txt[MAX_STR_LEN];
 
-// static fields;
-
 static FILE* out_fp;
-
-#define skip_cur(expected_tk)  ( (tk != expected_tk) ? err("Expected 'tk' got 'tk'") : lex_next() )
-#define skip_next(expected_tk) ( (lex_next() != expected_tk) ? err("Expected 'tk' got 'tk'") : lex_next() )
-
 static struct Arena arena;
+
 
 /* int bits atleast 16: 0b0000000000000_000 */
 // arr_szs: 0b 00000000_00000000_00000000_00000000
@@ -39,10 +40,6 @@ static struct Arena arena;
 #define SZ_DYNAMIC 0x8000 // 0b1000000000000000
 
 #define SET_TY(ty) ty 
-
-/* TBD: prob remove this & 'MAX_IDS' if using heap */
-#define MAX_SYMS 128
-
 
 struct TySpec {
   unsigned int* arr_dims;
@@ -149,7 +146,7 @@ gen_code(FILE* src_fp_arg, FILE* out_fp_arg)
 {
   out_fp = out_fp_arg;
   lex_init(src_fp_arg);
-  if (!arena_init(&arena)) err("Memory init fail");
+  if (!arena_init(&arena, ARENA_SZ_INIT)) err("Memory init fail");
   // gen_headers();
   // gen_const_table();
   gen_block();
