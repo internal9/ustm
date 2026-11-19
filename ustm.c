@@ -9,17 +9,6 @@
 
 #define err(msg) (fprintf(stderr, msg "\n"), exit(EXIT_FAILURE))
 
-/* USED BY: 'ustmgen.c' */
-struct Arena arena;
-
-int
-end(int exit_code)
-{
-  arena_clear();
-  exit(EXIT_FAILURE);
-}
-
-
 static inline bool
 check_suffix(const char* str, const char* suffix)
 {
