@@ -9,9 +9,13 @@
 
 #define err(msg) (fprintf(stderr, msg "\n"), exit(EXIT_FAILURE))
 
+/* USED BY: 'ustmgen.c' */
+struct Arena arena;
+
 int
 end(int exit_code)
 {
+  arena_clear();
   exit(EXIT_FAILURE);
 }
 
@@ -51,6 +55,7 @@ main(int argc, const char* argv[argc])
   if (!strcmp(src_name, out_name)) err("Source name cannot be same as outfile name");
   FILE* src_fp = open_src(src_name);
   FILE* out_fp = open_out(out_name);
+  arena_init(&arena);
   gen_code(src_fp, out_fp);
   fclose(src_fp);
   fclose(out_fp);
