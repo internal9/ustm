@@ -26,6 +26,9 @@ static FILE* out_fp;
 
 #define skip_cur(expected_tk)  ( (tk != expected_tk) ? err("Expected 'tk' got 'tk'") : lex_next() )
 #define skip_next(expected_tk) ( (lex_next() != expected_tk) ? err("Expected 'tk' got 'tk'") : lex_next() )
+
+static struct Arena arena;
+
 /* int bits atleast 16: 0b0000000000000_000 */
 // arr_szs: 0b 00000000_00000000_00000000_00000000
 // arr_flags: 0b 00_00_00_00
@@ -146,7 +149,9 @@ gen_code(FILE* src_fp_arg, FILE* out_fp_arg)
 {
   out_fp = out_fp_arg;
   lex_init(src_fp_arg);
+  if (!arena_init(&arena)) err("Memory init fail");
   // gen_headers();
   // gen_const_table();
   gen_block();
+  arena_clear(&arena);
 }
