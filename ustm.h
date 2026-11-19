@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <limits.h>
+#include <stdint.h>
 
 /* 'exit()' should close all open streams anyways, could be replaced be a global cleanup func if needed */
 #define err(msg)          (fprintf(stderr, msg "\n"), exit(EXIT_FAILURE))
@@ -13,9 +14,8 @@
 /* NOTES:
  * - single-char tks' values each == respective native char code
  * - unsure if even beyond 255, special things are reserved
+ * - single-char tks <= 255 (UCHAR_MAX)
  */
-
-// single-char tks <= 255 (UCHAR_MAX)
 enum {
 #define TK_CMPLX_FIRST (UCHAR_MAX + 1)
 
@@ -76,8 +76,8 @@ enum {
   TK_JMP,
   TK_FN,
   
-  // NOTE: 'UD' => 'user-defined'
-  // NOTE: Will be used for string-interning (unles string len fitsinstr)
+  /* NOTE: 'UD' => 'user-defined' */
+  /* NOTE: Will be used for string-interning (unles string len fitsinstr) */
 #define TK_UD_ID_FIRST (TK_FN + 1)
 };
 
@@ -99,3 +99,19 @@ int  lex_next(void);
 void gen_code(FILE* src_fp_arg, FILE* out_fp_arg);
 /* ustmvm.c  */
 void vm_run(FILE* byc_fp);
+
+/* arena.c */
+struct Arena {
+    void *top_ptr;
+    struct Block *current_block;
+    size_t current_block_capacity;
+    size_t current_block_used;
+    size_t default_block_capacity;
+};
+
+void arena_init(struct Arena *restrict p_arena, size_t default_block_capacity);
+void *arena_alloc(struct Arena *restrict p_arena, size_t amount);
+void *arena_realloc(struct Arena *restrict p_arena, void *ptr, size_t old_amount, size_t new_amount);
+void *arena_realloc_top(struct Arena *restrict p_arena, size_t new_amount); /* grow in place */
+void arena_reset(struct Arena *restrict p_arena); /* clear until first block */
+void arena_clear(const struct Arena *restrict p_arena); /* clear all blocks, effectively making arena unusable */
