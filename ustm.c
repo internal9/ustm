@@ -9,6 +9,13 @@
 
 #define err(msg) (fprintf(stderr, msg "\n"), exit(EXIT_FAILURE))
 
+int
+end(int exit_code)
+{
+  exit(EXIT_FAILURE);
+}
+
+
 static inline bool
 check_suffix(const char* str, const char* suffix)
 {
