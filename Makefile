@@ -17,5 +17,5 @@ CCFLAGS = -std=c99 -pedantic -Wall -Wformat=2 -O -Wconversion -Wimplicit-fallthr
 -Wl,--as-needed -Wl,--no-copy-dt-needed-entries \
 -fno-diagnostics-color -Wno-switch -Wno-switch-enum
 
-ustm: ustm.c ustmlex.c ustmgen.c
-	$(CC) $(CCFLAGS) -o ustm ustm.c ustmlex.c ustmgen.c
+ustm: ustm.c ustmlex.c ustmgen.c arena.c
+	$(CC) $(CCFLAGS) -o ustm ustm.c ustmlex.c ustmgen.c arena.c

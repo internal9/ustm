@@ -18,7 +18,6 @@
 
 /* TBD: prob remove 'MAX_SYMS' & 'MAX_IDS' if using heap */
 #define MAX_SYMS 256
-#define ARENA_SZ_INIT 256
 #define skip_cur(expected_tk)  ( (tk != expected_tk) ? err("Expected 'tk' got 'tk'") : lex_next() )
 #define skip_next(expected_tk) ( (lex_next() != expected_tk) ? err("Expected 'tk' got 'tk'") : lex_next() )
 
@@ -147,9 +146,7 @@ gen_code(FILE* src_fp_arg, FILE* out_fp_arg)
 {
   out_fp = out_fp_arg;
   lex_init(src_fp_arg);
-  if (!arena_init(&arena, ARENA_SZ_INIT)) err("Memory init fail");
   // gen_headers();
   // gen_const_table();
   gen_block();
-  arena_clear(&arena);
 }

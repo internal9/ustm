@@ -6,11 +6,12 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* 'exit()' should close all open streams anyways, could be replaced be a global cleanup func if needed */
-#define err(msg)          (fprintf(stderr, msg "\n"), exit(EXIT_FAILURE))
-#define err_fmt(fmt, ...) (fprintf(stderr, fmt "\n", __VA_ARGS__), exit(EXIT_FAILURE))
-
 #define MAX_STR_LEN 512
+/* 'exit()' should close all open streams anyways, could be replaced be a global cleanup func if needed */
+#define err(msg)          (fprintf(stderr, msg "\n"), free_prog_(true))
+#define err_fmt(fmt, ...) (fprintf(stderr, fmt "\n", __VA_ARGS__), free_prog_(true))
+/* lol what a mess */
+extern void free_prog_(bool do_thing);
 
 /* NOTES:
  * - single-char tks' values each == respective native char code
@@ -115,4 +116,4 @@ void* arena_alloc(struct Arena *restrict p_arena, size_t amount);
 void* arena_realloc(struct Arena *restrict p_arena, void *ptr, size_t old_amount, size_t new_amount);
 void* arena_realloc_top(struct Arena *restrict p_arena, size_t new_amount); /* grow in place */
 void arena_reset(struct Arena *restrict p_arena); /* clear until first block */
-void arena_clear(const struct Arena *restrict p_arena); /* clear all blocks, effectively making arena unusable */
+void arena_free(const struct Arena *restrict p_arena); /* clear all blocks, effectively making arena unusable */

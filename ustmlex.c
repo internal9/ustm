@@ -27,15 +27,19 @@ typedef double  ustm_num;
 // NOTE: Static hashing, 'MAX_IDS' should be a *power of 2* since using bitwise modulo
 // TBD: Might need const table (including string) in byc => string interning too? ORRR 'pushstr' 'movestr'
 #define MAX_IDS 512
-#define upd_pos_fw_(c) ( ((c) == '\n') ? (line++, column = 0) : (last_column = column++) )
+
+#define upd_pos_fw_(c) ( ((c) == '\n') ? (line++, column = 1) : (last_column = column++) )
 #define upd_pos_bw_(c) ( ((c) == '\n') ? (line++, column = last_column) : (last_column = column++) )
 #define nextc() (upd_pos_fw_(lazy_cur_c = getc(src_fp)), lazy_cur_c)
 #define peekc() (ungetc(getc(src_fp), src_fp))
 #define lastc() (upd_pos_bw_(lazy_cur_c = ungetc(lazy_cur_c, src_fp)), lazy_cur_c)
 
+#define lex_err_fmt(fmt, ...) err_fmt("[%d,%d]: " fmt, line, column, __VA_ARGS__)
+#define lex_err(msg)          err_fmt("[%d,%d]: " msg, line, column)
+
 /* USED BY: 'ustemgen.c' */
 int tk;
-int line = 0, column = 0;
+int line = 1, column = 0;
 char tk_val_txt[MAX_STR_LEN];  // TBD: copy char (& process escape seqs) per fgetc?
 int txt_n = 0;
 ustm_int tk_val_int;  // NOTE: Holds character values too
@@ -90,7 +94,7 @@ lex_int(bool is_hex)
         return;
       }
     }
-    if (isxdigit(peekc())) err("Hexadecimal int exceeds max size");
+    if (isxdigit(peekc())) lex_err("Hexadecimal int exceeds max size");
   } else {
     // binary
     for (int i = 0; i < 64; i++) {
@@ -107,7 +111,7 @@ lex_int(bool is_hex)
         return;
       }
     }
-    if (isdigit(peekc())) err("Binary int exceeds max size");
+    if (isdigit(peekc())) lex_err("Binary int exceeds max size");
   }
 }
 
@@ -231,17 +235,19 @@ static bool
 lex_char(bool is_tk_lit_str)
 {
   int c = nextc();
+  printf("%d\n", c);
   switch (c) {
-  case '\'': err("Char cannot be empty");
-  case '\\': c = esc_seq(nextc());
+  case EOF:  lex_err("Char got EOF");
+  case '\'': lex_err("Char cannot be empty");
+  case '\\': c = esc_seq(nextc()); break;
   case '"': if (is_tk_lit_str) return true;  // don't write '"' to buf
   case '_': case '\t': break;
   default:
-    if (!isalnum(c) && !isspace(c) && !ispunct(c) && c != '_') err("Char must be ASCII idk");
+    if (!isalnum(c) && !ispunct(c) && c != ' ' && c != '_') lex_err("Char must be ASCII idk");
   }
   if (is_tk_lit_str) tk_val_txt[txt_n++] = c;
   else {
-    if (nextc() != '\'') err("Expected closing '\\'");
+    if (nextc() != '\'') lex_err("Expected closing '\\'");
     tk_val_int = c;
   }
   return false;
@@ -256,35 +262,24 @@ lex_str(void)
   }
 }
 
-// whitespace characters are non-printable characters that define text layouts
-static inline void
-skip_whitespace(void)
-{
-  while (isspace(nextc()));
-  lastc();
-}
-
 static void
 skip_comment(bool is_multi_line)
 {
   int c;
-  if (is_multi_line)
+  if (is_multi_line) {
+    int line_start = line, column_start = column - 1;
     while (1) {
-      if ((c = nextc()) == EOF) {err("Unterminated block comment"); return;}
+      if ((c = nextc()) == EOF)   goto multi_line_err;
     else if (c == '*') {
-        if ((c = nextc()) == EOF) {err("Unterminated block comment"); return;}
-        if (c == '/') break;
+        if ((c = nextc()) == EOF) goto multi_line_err;
+        if (c == '/') return;
       }
     }
+    multi_line_err:
+      lex_err_fmt("Unterminated block comment defined at [%d,%d]", line_start, column_start);
+  }
   else
-    do if (printf("asddd %c\n", c), (c = nextc()) == EOF) {lastc(); break;} while (c != '\n');
-}
-
-static inline void
-err_invalid_char(int c)
-{
-  if (isprint(c)) err_fmt("Invalid symbol '%c', character code of %d", c, (int) c);
-  else err_fmt("Invalid non-printable symbol, character code of %d", (int) c);
+    do if ((c = nextc()) == EOF) {lastc(); break;} while (c != '\n');
 }
 
 static const int c_cases2[] = {
@@ -313,11 +308,9 @@ int
 lex_next(void)
 {
   int c, c2;
-  
 skip_non_tk:
   switch (c = nextc()) {
-  case ' ': case '\n': case '\r': case '\t': case '\v': case '\f':
-      skip_whitespace();
+  case ' ': case '\t': case '\n':
       goto skip_non_tk;
   case '/':
       c = nextc();
@@ -369,8 +362,8 @@ skip_non_tk:
   case '_': lastc(); tk = lex_id(); break;
   default:
     if (isalpha(c)) {lastc(); tk = lex_id(); break;}
-    err_invalid_char(c);
-    tk = EOF; break;
+    if (isprint(c)) lex_err_fmt("Invalid symbol '%c', character code of %d", c, c);
+    else lex_err_fmt("Invalid non-printable symbol, character code of %d", c);
   }
   return tk;
 }

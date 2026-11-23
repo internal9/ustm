@@ -2,7 +2,7 @@
  * NOTES: bc of a default alignment of 8, fuction pointers *may*
  * not be supported since they may have a an alignment of 16
  */
-#include "arena.h"
+#include "ustm.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -105,7 +105,7 @@ void arena_reset(struct Arena *restrict p_arena) {
     p_arena->top_ptr = NULL;
 }
 
-void arena_clear(const struct Arena *restrict p_arena) {
+void arena_free(const struct Arena *restrict p_arena) {
     struct Block *p_block = p_arena->current_block;
     struct Block *p_prev_block;
     while (p_block != NULL) {
