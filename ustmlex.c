@@ -15,42 +15,38 @@
 #include <limits.h>
 #include <stdbool.h>
 
-static FILE* src_fp;  // SET BY: 'lex_init()'
-
-int line = 0;
-int column = 0;
-static int last_column;
-static int lazy_cur_c;
-
-#define upd_pos_fw_(c) ( ((c) == '\n') ? (line++, column = 0) : (last_column = column++) )
-#define upd_pos_bw_(c) ( ((c) == '\n') ? (line++, column = last_column) : (last_column = column++) )
-
-#define nextc() (upd_pos_fw_(lazy_cur_c = getc(src_fp)), lazy_cur_c)
-#define peekc() (ungetc(getc(src_fp), src_fp))
-#define lastc() (upd_pos_bw_(lazy_cur_c = ungetc(lazy_cur_c, src_fp)), lazy_cur_c)
-
-int tk;
-//bool is_ident_duplicate = false;
-
 // NOTE: char type just uses native C type, no seperate typedef
 typedef int64_t ustm_int;
 typedef double  ustm_num;
 
-//typedef int file_pos;
-// static file_pos line = 1;
-// static file_pos column = 0;
-
 // NOTE: Assumption, despite ambiguity
 #define TAB_WIDTH_GUESS 8
-
 // NOTE: applies to kws & user-defined idents (var, func name, etc)
-#define MAX_ID_LEN  64
+#define MAX_ID_LEN 64
 // #define MAX_STR_LEN 512
-
-// NOTE: Static hashing
+// NOTE: Static hashing, 'MAX_IDS' should be a *power of 2* since using bitwise modulo
 // TBD: Might need const table (including string) in byc => string interning too? ORRR 'pushstr' 'movestr'
-// NOTE: should be a *power of 2* since using bitwise modulo
 #define MAX_IDS 512
+#define upd_pos_fw_(c) ( ((c) == '\n') ? (line++, column = 0) : (last_column = column++) )
+#define upd_pos_bw_(c) ( ((c) == '\n') ? (line++, column = last_column) : (last_column = column++) )
+#define nextc() (upd_pos_fw_(lazy_cur_c = getc(src_fp)), lazy_cur_c)
+#define peekc() (ungetc(getc(src_fp), src_fp))
+#define lastc() (upd_pos_bw_(lazy_cur_c = ungetc(lazy_cur_c, src_fp)), lazy_cur_c)
+
+/* USED BY: 'ustemgen.c' */
+int tk;
+int line = 0, column = 0;
+char tk_val_txt[MAX_STR_LEN];  // TBD: copy char (& process escape seqs) per fgetc?
+int txt_n = 0;
+ustm_int tk_val_int;  // NOTE: Holds character values too
+ustm_num tk_val_num;
+
+static FILE* src_fp;  // SET BY: 'lex_init()'
+static int last_column;
+static int lazy_cur_c;
+
+// NOTE: 'lex_init()' will make it equal 'TK_UD_ID_FIRST' anyways
+static int tk_id = TK_KW_FIRST;
 
 // TBD: change 'id' -> 'sym'
 static struct Id {
@@ -58,15 +54,6 @@ static struct Id {
   int len;
   int tk;
 } ids[MAX_IDS] = {0};
-// static double syms[2];
-
-/* USED BY: 'ustemgen.c' */
-char tk_val_txt[MAX_STR_LEN];  // TBD: copy char (& process escape seqs) per fgetc?
-// static char *tk_val_txt; NOTE: lol change it to this later (NEVER HAPPENING) so str lens can be handled, buffering may require >= 1 block, or just fread the entire thing
-static ustm_int tk_val_int;  // NOTE: Holds character values too
-static ustm_num tk_val_num;
-
-static int txt_n = 0;
 
 // NOTE: In same order as enums
 static const char* kws[] = {
@@ -79,10 +66,6 @@ static const char* kws[] = {
   "cases", "jmp",
   "fn",
 };
-
-// NOTE: 'lex_init()' will make it equal 'TK_UD_ID_FIRST' anyways
-static int tk_id = TK_KW_FIRST;
-
 
 // TODO: handling signed ints & nums when unary '-' expr
 /* only base10 values have fraction feature */

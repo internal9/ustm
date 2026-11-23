@@ -7,7 +7,10 @@
 #include <errno.h>
 #include <stdbool.h>
 
+#define ARENA_INIT_SIZE 256
 #define err(msg) (fprintf(stderr, msg "\n"), exit(EXIT_FAILURE))
+
+struct Arena arena;
 
 static inline bool
 check_suffix(const char* str, const char* suffix)
@@ -44,7 +47,7 @@ main(int argc, const char* argv[argc])
   if (!strcmp(src_name, out_name)) err("Source name cannot be same as outfile name");
   FILE* src_fp = open_src(src_name);
   FILE* out_fp = open_out(out_name);
-  arena_init(&arena);
+  arena_init(&arena, ARENA_INIT_SIZE);
   gen_code(src_fp, out_fp);
   fclose(src_fp);
   fclose(out_fp);

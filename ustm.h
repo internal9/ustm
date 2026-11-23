@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <limits.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 /* 'exit()' should close all open streams anyways, could be replaced be a global cleanup func if needed */
 #define err(msg)          (fprintf(stderr, msg "\n"), exit(EXIT_FAILURE))
@@ -109,7 +110,7 @@ struct Arena {
     size_t default_block_capacity;
 };
 
-void arena_init(struct Arena *restrict p_arena, size_t default_block_capacity);
+bool arena_init(struct Arena *restrict p_arena, size_t default_block_capacity);
 void* arena_alloc(struct Arena *restrict p_arena, size_t amount);
 void* arena_realloc(struct Arena *restrict p_arena, void *ptr, size_t old_amount, size_t new_amount);
 void* arena_realloc_top(struct Arena *restrict p_arena, size_t new_amount); /* grow in place */

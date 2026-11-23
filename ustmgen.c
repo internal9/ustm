@@ -22,12 +22,13 @@
 #define skip_cur(expected_tk)  ( (tk != expected_tk) ? err("Expected 'tk' got 'tk'") : lex_next() )
 #define skip_next(expected_tk) ( (lex_next() != expected_tk) ? err("Expected 'tk' got 'tk'") : lex_next() )
 
+/* FROM: 'ustm.c' */
+extern struct Arena arena;
 /* FROM: 'ustmlex.c' */
 extern int tk;
 extern char tk_val_txt[MAX_STR_LEN];
 
 static FILE* out_fp;
-static struct Arena arena;
 
 
 /* int bits atleast 16: 0b0000000000000_000 */

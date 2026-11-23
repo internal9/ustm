@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <stdbool.h>
 
 struct Block {
     struct Block *prev_block;
@@ -29,7 +30,7 @@ static inline void arena_add_block(struct Arena *restrict p_arena, size_t block_
     p_arena->current_block_capacity = block_capacity;
 }
 
-void arena_init(struct Arena *restrict p_arena, size_t default_block_capacity) {
+bool arena_init(struct Arena *restrict p_arena, size_t default_block_capacity) {
     assert(default_block_capacity > 0);
     default_block_capacity = ALIGN8(default_block_capacity);
     p_arena->default_block_capacity = default_block_capacity;
@@ -39,6 +40,7 @@ void arena_init(struct Arena *restrict p_arena, size_t default_block_capacity) {
     p_arena->current_block = malloc(sizeof(struct Block) + default_block_capacity);
     p_arena->current_block->prev_block = NULL;
     p_arena->top_ptr = NULL;
+    return p_arena->current_block != NULL;
 }
 
 /* Required memory alignment otherwise undefined behavior from misaligned access */
