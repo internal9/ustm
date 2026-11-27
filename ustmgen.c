@@ -79,26 +79,41 @@ sym_find(int tk)
   if (tk < TK_UD_ID_FIRST) return NULL;
 } */
 
+#define UNARY_PREC 50
+
 static int
-gen_expr(int prec, int dest, bool is_stack_dest)
+tk_to_ty(int tk)
+{
+  switch (tk) {
+  case TK_NULL: return TY_NULL;
+  case TK_TRUE:
+  case TK_FALSE: return TY_BOOL;
+  case TK_LIT_CHAR: return TY_CHAR;
+  case TK_LIT_INT: return TY_LIT;
+  case TK_LIT_NUM: return TY_NUM;
+  default: return -1;
+  }
+}
+
+static int
+gen_expr(int prec_limit, int dest, bool is_stack_dest)
 {
   /* regs used in order of incremental count, de-allocated regs decremented in order too */
   int regs_used = 0;
-  int ops[128];
-  int ops_n = 0;
   int prec;
-  int ty1, ty2;
+  int ty1, ty2, ty_final;
   do {
     // TBD: post & pre-fix unary operators '++', '--'
     switch (tk) {
     case '-':
       lex_next();
-      ty1 = gen_expr();
-      if (ty1 != TY_INT && ty1 != TY_NUM) err();
+      ty1 = gen_expr(UNARY_PREC, -1, 0);
+      if (ty1 != TY_INT && ty1 != TY_NUM) gen_err("Expected integer or number for unary '-'");
       break;
     case '!':
       lex_next();
-      gen_expr();
+      ty2 = gen_expr(UNARY_PREC, -1, 0);
+      if (!IS_TY_TRUTHY(ty2)) gen_err("Cannot negate 'tk'");
       ty1 = TY_BOOL;
       break;
     case '(':
@@ -111,35 +126,43 @@ gen_expr(int prec, int dest, bool is_stack_dest)
     case TK_FALSE:
     case TK_LIT_CHAR:
     case TK_LIT_LIT:
+      ty1 = tk_to_ty(tk);
       // emit(MOV REGS[regs_used], tk_val_int);
       regs_used++;
       break;
     case TK_LIT_NUM:
+      ty1 = TY_NUM;
       // emit(MOV FP_REGS[regs_used], tk_val_num);
       regs_used++;
       break;
     default:
-      
+      // UD_ID
     }
     
     switch (lex_next()) {
+    case '?': prec = 0; break;
     case '-':
-    case '+':
+    case '+': prec = 1; break;
     case '/':
     case '*':
-    case '%':
-    case '^':
-    case TK_INC:
-    case TK_DEC:
-    case TK_ADD_AS:
-    case TK_EQ:
+    case '%': prec = 2; break;
+    case '^': prec = 3; break;
+    // TBD: handling postfix unary ops
+    //case TK_INC:
+    //case TK_DEC:
+    
+    // NOTE: logical ops
+    case TK_EQ: 
+    case TK_NEQ:
     case TK_LEQ:
-    ops[ops_n++] = tk;
-    default:
+    case TK_GEQ: prec = 1; break;
+    // default:
     }
     
-    if (tk >= last_op_prec);
-  } while (tk != EOF);
+    // TODO: handle '^' prec
+  } while (prec > prec_limit); //tk != EOF);
+  
+  return ty_final;
 }
 
 // TODO: 'ref' param handling

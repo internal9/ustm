@@ -22,7 +22,7 @@ typedef double  ustm_num;
 /* NOTES:
  * - single-char tks' values each == respective native char code
  * - unsure if even beyond 255, special things are reserved
- * - single-char tks <= 255 (UCHAR_MAX)
+   * - single-char tks <= 255 (UCHAR_MAX)
  */
 enum {
 #define TK_CMPLX_FIRST (UCHAR_MAX + 1)
@@ -31,6 +31,7 @@ enum {
   TK_DEC,
 
   TK_EQ,
+  TK_NEQ,
   TK_LEQ,
   TK_GEQ,
   TK_L_OR,
@@ -50,7 +51,6 @@ enum {
   TK_POW_AS,
   TK_MOD_AS,
 
-  TK_NOT_AS,
   TK_OR_AS,
   TK_AND_AS,
   TK_XOR_AS,
@@ -95,11 +95,12 @@ enum {
 // #define IS_CMP_OP(tk)   (tk < TK_LIT_CHAR && tk > 
 
 enum {
-  TY_BOOL   = 0x0,  // 0b000
-  TY_CHAR   = 0x1,  // 0b001
-  TY_INT    = 0x2,  // 0b010
-  TY_NUM    = 0x3,  // 0b100
-  TY_STRUCT = 0x4,  // 0b101
+  TY_NULL   = 0x0,  // 0b000
+  TY_BOOL   = 0x1,  // 0b001
+  TY_CHAR   = 0x2,  // 0b010
+  TY_INT    = 0x3,  // 0b011
+  TY_NUM    = 0x4,  // 0b100
+  TY_STRUCT = 0x5,  // 0b101
   TY_ARR    = 0x8,  // 0b1000
   MOD_REF   = 0x10, // 0b10000
   MOD_CONST = 0x20, // 0b100000

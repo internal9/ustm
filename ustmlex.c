@@ -281,7 +281,7 @@ skip_comment(bool is_multi_line)
 }
 
 static const int c_cases2[] = {
-  ['!'] = TK_NOT_AS,
+  ['!'] = TK_NEQ,
   ['='] = TK_EQ,
   ['/'] = TK_DIV_AS,
   ['*'] = TK_MUL_AS,

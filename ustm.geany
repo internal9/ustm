@@ -29,10 +29,9 @@ long_line_column=72
 
 [files]
 current_page=0
-FILE_NAME_0=2977;C;0;EUTF-8;0;1;0;%2Fhome%2Fipotato%2FPROJECTS%2FC99%2Fustm%2Fustmgen.c;0;2
-FILE_NAME_1=8923;C;0;EUTF-8;0;1;0;%2Fhome%2Fipotato%2FPROJECTS%2FC99%2Fustm%2Fustmlex.c;0;2
-FILE_NAME_2=618;C++;0;EUTF-8;0;1;0;%2Fhome%2Fipotato%2FPROJECTS%2FC99%2Fustm%2Fustm.h;0;2
-FILE_NAME_3=25;None;0;EUTF-8;0;1;0;%2Fhome%2Fipotato%2FPROJECTS%2FC99%2Fustm%2FTEST%2Ftest1.ustm;0;2
+FILE_NAME_0=2780;C;0;EUTF-8;0;1;0;%2Fhome%2Fipotato%2FPROJECTS%2FC99%2Fustm%2Fustmgen.c;0;2
+FILE_NAME_1=1092;C++;0;EUTF-8;0;1;0;%2Fhome%2Fipotato%2FPROJECTS%2FC99%2Fustm%2Fustm.h;0;2
+FILE_NAME_2=25;None;0;EUTF-8;0;1;0;%2Fhome%2Fipotato%2FPROJECTS%2FC99%2Fustm%2FTEST%2Ftest1.ustm;0;2
 
 [VTE]
 last_dir=/home/ipotato/PROJECTS/C99/ustm
