@@ -23,7 +23,7 @@ modifiers:  'ref', 'const'
 misc:       'func'
 
 ## operators
-arithmetic: '++', '--', '+', '-', '*', '/', '^', '%'
+arithmetic: '++', '--', '+', '-' (unary negation & binary sub), '*', '/', '^', '%'
 
 arithmetic (compound): '+=' , '-=', '*=', '/=', '^=', '%='
 

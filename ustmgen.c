@@ -18,14 +18,23 @@
 
 /* TBD: prob remove 'MAX_SYMS' & 'MAX_IDS' if using heap */
 #define MAX_SYMS 256
-#define skip_cur(expected_tk)  ( (tk != expected_tk) ? err("Expected 'tk' got 'tk'") : lex_next() )
+#define skip_cases_err_(tk_, expected_tk_) ( (expected_tk_ == TK_UD_ID_FIRST) ? (tk_ < TK_UD_ID_FIRST) : (tk_ != expected_tk_) )
+// iso c warning lol
+#define skip_cur(expected_tk)  ( skip_cases_err_(tk, expected_tk) ? err("Expected 'tk' got 'tk'") : lex_next() )
 #define skip_next(expected_tk) ( (lex_next() != expected_tk) ? err("Expected 'tk' got 'tk'") : lex_next() )
+
+#define gen_err_fmt(fmt, ...) err_fmt("[%d,%d]: " fmt, tk_line, tk_column, __VA_ARGS__)
+#define gen_err(msg)          err_fmt("[%d,%d]: " msg, tk_line, tk_column)
 
 /* FROM: 'ustm.c' */
 extern struct Arena arena;
 /* FROM: 'ustmlex.c' */
 extern int tk;
+extern int tk_line, tk_column;
 extern char tk_val_txt[MAX_STR_LEN];
+extern int txt_n;
+extern ustm_int tk_val_int;  // NOTE: Holds character values too
+extern ustm_num tk_val_num;
 
 static FILE* out_fp;
 
@@ -42,15 +51,17 @@ static FILE* out_fp;
 #define SET_TY(ty) ty 
 
 struct TySpec {
-  unsigned int* arr_dims;
   union {
-    unsigned int* fields;
-    int ref;
-  } struct_data;
-  //struct TySpec* ptr;
+    union {
+      struct TySpec* fields;
+      int ref;
+    } struct_data;
+    struct {
+      struct TySpec* ptr;
+      int len;
+    } arr_data;
+  } v;
   int flags;
-  /* arr or struct */
-  //int fields_n;
 };
 
 static struct Sym {
@@ -68,28 +79,92 @@ sym_find(int tk)
   if (tk < TK_UD_ID_FIRST) return NULL;
 } */
 
+static int
+gen_expr(int prec, int dest, bool is_stack_dest)
+{
+  /* regs used in order of incremental count, de-allocated regs decremented in order too */
+  int regs_used = 0;
+  int ops[128];
+  int ops_n = 0;
+  int prec;
+  int ty1, ty2;
+  do {
+    // TBD: post & pre-fix unary operators '++', '--'
+    switch (tk) {
+    case '-':
+      lex_next();
+      ty1 = gen_expr();
+      if (ty1 != TY_INT && ty1 != TY_NUM) err();
+      break;
+    case '!':
+      lex_next();
+      gen_expr();
+      ty1 = TY_BOOL;
+      break;
+    case '(':
+      lex_next();
+      ty1 = gen_expr();
+      skip_cur(')');
+      break;
+    case TK_NULL:
+    case TK_TRUE:
+    case TK_FALSE:
+    case TK_LIT_CHAR:
+    case TK_LIT_LIT:
+      // emit(MOV REGS[regs_used], tk_val_int);
+      regs_used++;
+      break;
+    case TK_LIT_NUM:
+      // emit(MOV FP_REGS[regs_used], tk_val_num);
+      regs_used++;
+      break;
+    default:
+      
+    }
+    
+    switch (lex_next()) {
+    case '-':
+    case '+':
+    case '/':
+    case '*':
+    case '%':
+    case '^':
+    case TK_INC:
+    case TK_DEC:
+    case TK_ADD_AS:
+    case TK_EQ:
+    case TK_LEQ:
+    ops[ops_n++] = tk;
+    default:
+    }
+    
+    if (tk >= last_op_prec);
+  } while (tk != EOF);
+}
+
 // TODO: 'ref' param handling
-static struct TySpec
+static struct TySpec*
 read_decl_spec(bool allow_modifiers)
 {
-  struct TySpec ty_spec;
+  struct TySpec* ty_spec = arena_alloc(&arena, sizeof(struct TySpec));
   switch (tk) {
-  case TK_CONST: {ty_spec.flags |= MOD_CONST; lex_next(); break;}
+  case TK_CONST: {ty_spec->flags |= MOD_CONST; lex_next(); break;}
   /* ... */
   default:
     ;
   }
   
   switch (tk) {
-  case TK_BOOL: ty_spec.flags|= TY_BOOL;
-  case TK_CHAR: ty_spec.flags |= TY_CHAR;
-  case TK_INT: ty_spec.flags |= TY_INT;
-  case TK_NUM: ty_spec.flags |= TY_NUM;
+  case TK_BOOL: ty_spec->flags|= TY_BOOL; break;
+  case TK_CHAR: ty_spec->flags |= TY_CHAR; break;
+  case TK_INT: ty_spec->flags |= TY_INT; break;
+  case TK_NUM: ty_spec->flags |= TY_NUM; break;
   default: err("uhhh");
   }
   
+  // TODO: reusable arr & struct indexing function
   if (lex_next() == '[') {
-    ty_spec.flags |= TY_ARR;
+    ty_spec->flags |= TY_ARR;
     for (int i; lex_next() == '['; i++) {
       lex_next();
       if (tk == ']') {
@@ -112,10 +187,18 @@ read_decl_spec(bool allow_modifiers)
 static void
 gen_decl(void)
 {
-  struct TySpec ty_spec = read_decl_spec(true);
-  if (!IS_UD_ID(tk)) {err("Expected identifier"); return;}
+  puts("FOOO");
+  struct TySpec* ty_spec = read_decl_spec(true);
+  //if (!IS_UD_ID(tk)) err("Expected identifier");
+  skip_cur(TK_UD_ID_FIRST);
   lex_next();
   if (tk == '='); //gen_expr();
+  
+}
+
+static void
+gen_stmt(void)
+{
   
 }
 
@@ -135,6 +218,8 @@ gen_block(void)
   case TK_FOR:
   case TK_CASES:
   case TK_JMP:
+    gen_stmt();
+    break;
   case TK_FN:
   default:
     

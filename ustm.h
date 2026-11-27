@@ -7,11 +7,17 @@
 #include <stdbool.h>
 
 #define MAX_STR_LEN 512
+#define VM_REGS 256
+
 /* 'exit()' should close all open streams anyways, could be replaced be a global cleanup func if needed */
 #define err(msg)          (fprintf(stderr, msg "\n"), free_prog_(true))
 #define err_fmt(fmt, ...) (fprintf(stderr, fmt "\n", __VA_ARGS__), free_prog_(true))
 /* lol what a mess */
 extern void free_prog_(bool do_thing);
+
+// NOTE: char type just uses native C type, no seperate typedef
+typedef int64_t ustm_int;
+typedef double  ustm_num;
 
 /* NOTES:
  * - single-char tks' values each == respective native char code
@@ -23,12 +29,6 @@ enum {
 
   TK_INC = TK_CMPLX_FIRST,
   TK_DEC,
-  TK_ADD_AS,
-  TK_SUB_AS,
-  TK_MUL_AS,
-  TK_DIV_AS,
-  TK_POW_AS,
-  TK_MOD_AS,
 
   TK_EQ,
   TK_LEQ,
@@ -37,16 +37,24 @@ enum {
   TK_L_AND,
 
   TK_NOT,
-  TK_NOT_AS,
   TK_OR,
-  TK_OR_AS,
   TK_AND,
-  TK_AND_AS,
   TK_XOR,
-  TK_XOR_AS,
   TK_SH_L,
-  TK_SH_L_AS,
   TK_SH_R,
+  
+  TK_ADD_AS,
+  TK_SUB_AS,
+  TK_MUL_AS,
+  TK_DIV_AS,
+  TK_POW_AS,
+  TK_MOD_AS,
+
+  TK_NOT_AS,
+  TK_OR_AS,
+  TK_AND_AS,
+  TK_XOR_AS,
+  TK_SH_L_AS,
   TK_SH_R_AS,
   
   TK_LIT_CHAR,
@@ -82,6 +90,9 @@ enum {
   /* NOTE: Will be used for string-interning (unles string len fitsinstr) */
 #define TK_UD_ID_FIRST (TK_FN + 1)
 };
+
+#define IS_N_CMP_OP(tk) (tk <
+// #define IS_CMP_OP(tk)   (tk < TK_LIT_CHAR && tk > 
 
 enum {
   TY_BOOL   = 0x0,  // 0b000

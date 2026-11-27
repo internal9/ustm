@@ -15,10 +15,6 @@
 #include <limits.h>
 #include <stdbool.h>
 
-// NOTE: char type just uses native C type, no seperate typedef
-typedef int64_t ustm_int;
-typedef double  ustm_num;
-
 // NOTE: Assumption, despite ambiguity
 #define TAB_WIDTH_GUESS 8
 // NOTE: applies to kws & user-defined idents (var, func name, etc)
@@ -37,15 +33,17 @@ typedef double  ustm_num;
 #define lex_err_fmt(fmt, ...) err_fmt("[%d,%d]: " fmt, line, column, __VA_ARGS__)
 #define lex_err(msg)          err_fmt("[%d,%d]: " msg, line, column)
 
+static FILE* src_fp;  // SET BY: 'lex_init()'
+
 /* USED BY: 'ustemgen.c' */
 int tk;
-int line = 1, column = 0;
+int tk_line = 0, tk_column = 0; // NOTE: start line & column of a tk
 char tk_val_txt[MAX_STR_LEN];  // TBD: copy char (& process escape seqs) per fgetc?
 int txt_n = 0;
 ustm_int tk_val_int;  // NOTE: Holds character values too
 ustm_num tk_val_num;
 
-static FILE* src_fp;  // SET BY: 'lex_init()'
+static int line = 1, column = 0;
 static int last_column;
 static int lazy_cur_c;
 
@@ -319,6 +317,7 @@ skip_non_tk:
       goto skip_non_tk;
   }
   
+  tk_line = line, tk_column = column;
   switch (c) {
   case EOF:
     if (ferror(src_fp)) err("Lexing source read error");
